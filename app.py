@@ -3,7 +3,6 @@ import sqlite3
 
 app = Flask(__name__)
 
-# データベース初期化
 def init_db():
     conn = sqlite3.connect("tasks.db")
     c = conn.cursor()
@@ -24,9 +23,13 @@ init_db()
 def index():
     conn = sqlite3.connect("tasks.db")
     c = conn.cursor()
-    c.execute("SELECT task, deadline FROM tasks")
-    tasks = [{"task":row[0], "deadline":row[1]} for row in c.fetchall()]
+
+    c.execute("SELECT id, task, deadline FROM tasks")
+
+    tasks = [{"id":row[0], "task":row[1], "deadline":row[2]} for row in c.fetchall()]
+
     conn.close()
+
     return render_template("index.html", tasks=tasks)
 
 
@@ -37,7 +40,23 @@ def add():
 
     conn = sqlite3.connect("tasks.db")
     c = conn.cursor()
+
     c.execute("INSERT INTO tasks (task, deadline) VALUES (?,?)",(task,deadline))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+@app.route("/delete/<int:task_id>")
+def delete(task_id):
+
+    conn = sqlite3.connect("tasks.db")
+    c = conn.cursor()
+
+    c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
+
     conn.commit()
     conn.close()
 
@@ -45,20 +64,4 @@ def add():
 
 
 if __name__ == "__main__":
-    app.run()
-
-@app.route("/delete/<int:task_id>")
-def delete(task_id):
-
-    conn = sqlite3.connect("tasks.db")
-    c = conn.cursor()
-    c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
-
-from flask import send_from_directory
-@app.route("/manifest.json")
-def manifest():
-    return send_from_directory(".", "manifest.json")
+    app.run(debug=True)
