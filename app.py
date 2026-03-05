@@ -5,7 +5,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 
 def get_conn():
@@ -14,33 +14,78 @@ def get_conn():
 
 def init_db():
 
-    conn = get_conn()
-    c = conn.cursor()
+    try:
+        conn = get_conn()
+        c = conn.cursor()
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE,
-        password TEXT
-    )
-    """)
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT UNIQUE,
+            password TEXT
+        )
+        """)
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS tasks (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        subject TEXT,
-        task TEXT,
-        deadline TEXT,
-        done INTEGER DEFAULT 0
-    )
-    """)
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER,
+            subject TEXT,
+            task TEXT,
+            deadline TEXT,
+            done INTEGER DEFAULT 0
+        )
+        """)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        print("DB ERROR:", e)
 
 
 init_db()
+
+
+def get_tasks(user_id):
+
+    tasks = []
+
+    try:
+
+        conn = get_conn()
+        c = conn.cursor()
+
+        c.execute(
+            "SELECT id, subject, task, deadline, done FROM tasks WHERE user_id=%s ORDER BY deadline ASC",
+            (user_id,)
+        )
+
+        rows = c.fetchall()
+
+        for row in rows:
+
+            days_left = None
+
+            if row[3]:
+                d = datetime.strptime(row[3], "%Y-%m-%d")
+                days_left = (d - datetime.now()).days
+
+            tasks.append({
+                "id": row[0],
+                "subject": row[1],
+                "task": row[2],
+                "deadline": row[3],
+                "done": row[4],
+                "days_left": days_left
+            })
+
+        conn.close()
+
+    except Exception as e:
+        print("TASK ERROR:", e)
+
+    return tasks
 
 
 @app.route("/")
@@ -51,36 +96,7 @@ def index():
     if not user_id:
         return render_template("login.html")
 
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute(
-        "SELECT id, subject, task, deadline, done FROM tasks WHERE user_id=%s ORDER BY deadline ASC",
-        (user_id,)
-    )
-
-    rows = c.fetchall()
-
-    tasks = []
-
-    for row in rows:
-
-        days_left = None
-
-        if row[3]:
-            d = datetime.strptime(row[3], "%Y-%m-%d")
-            days_left = (d - datetime.now()).days
-
-        tasks.append({
-            "id": row[0],
-            "subject": row[1],
-            "task": row[2],
-            "deadline": row[3],
-            "done": row[4],
-            "days_left": days_left
-        })
-
-    conn.close()
+    tasks = get_tasks(user_id)
 
     return render_template("index.html", tasks=tasks)
 
@@ -88,19 +104,24 @@ def index():
 @app.route("/register", methods=["POST"])
 def register():
 
-    username = request.form["username"]
-    password = generate_password_hash(request.form["password"])
+    try:
 
-    conn = get_conn()
-    c = conn.cursor()
+        username = request.form["username"]
+        password = generate_password_hash(request.form["password"])
 
-    c.execute(
-        "INSERT INTO users (username, password) VALUES (%s, %s)",
-        (username, password)
-    )
+        conn = get_conn()
+        c = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        c.execute(
+            "INSERT INTO users (username, password) VALUES (%s,%s)",
+            (username, password)
+        )
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        print("REGISTER ERROR:", e)
 
     return redirect("/")
 
@@ -108,26 +129,31 @@ def register():
 @app.route("/login", methods=["POST"])
 def login():
 
-    username = request.form["username"]
-    password = request.form["password"]
+    try:
 
-    conn = get_conn()
-    c = conn.cursor()
+        username = request.form["username"]
+        password = request.form["password"]
 
-    c.execute(
-        "SELECT id, password FROM users WHERE username=%s",
-        (username,)
-    )
+        conn = get_conn()
+        c = conn.cursor()
 
-    user = c.fetchone()
+        c.execute(
+            "SELECT id, password FROM users WHERE username=%s",
+            (username,)
+        )
 
-    conn.close()
+        user = c.fetchone()
 
-    if user and check_password_hash(user[1], password):
+        conn.close()
 
-        session["user_id"] = user[0]
+        if user and check_password_hash(user[1], password):
 
-        return redirect("/")
+            session["user_id"] = user[0]
+
+            return redirect("/")
+
+    except Exception as e:
+        print("LOGIN ERROR:", e)
 
     return redirect("/")
 
@@ -148,20 +174,25 @@ def add():
     if not user_id:
         return redirect("/")
 
-    subject = request.form["subject"]
-    task = request.form["task"]
-    deadline = request.form["deadline"]
+    try:
 
-    conn = get_conn()
-    c = conn.cursor()
+        subject = request.form["subject"]
+        task = request.form["task"]
+        deadline = request.form["deadline"]
 
-    c.execute(
-        "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (%s,%s,%s,%s,0)",
-        (user_id, subject, task, deadline)
-    )
+        conn = get_conn()
+        c = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        c.execute(
+            "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (%s,%s,%s,%s,0)",
+            (user_id, subject, task, deadline)
+        )
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        print("ADD ERROR:", e)
 
     return redirect("/")
 
@@ -171,16 +202,21 @@ def delete(task_id):
 
     user_id = session.get("user_id")
 
-    conn = get_conn()
-    c = conn.cursor()
+    try:
 
-    c.execute(
-        "DELETE FROM tasks WHERE id=%s AND user_id=%s",
-        (task_id, user_id)
-    )
+        conn = get_conn()
+        c = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        c.execute(
+            "DELETE FROM tasks WHERE id=%s AND user_id=%s",
+            (task_id, user_id)
+        )
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        print("DELETE ERROR:", e)
 
     return redirect("/")
 
@@ -190,16 +226,21 @@ def toggle(task_id):
 
     user_id = session.get("user_id")
 
-    conn = get_conn()
-    c = conn.cursor()
+    try:
 
-    c.execute(
-        "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=%s AND user_id=%s",
-        (task_id, user_id)
-    )
+        conn = get_conn()
+        c = conn.cursor()
 
-    conn.commit()
-    conn.close()
+        c.execute(
+            "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=%s AND user_id=%s",
+            (task_id, user_id)
+        )
+
+        conn.commit()
+        conn.close()
+
+    except Exception as e:
+        print("TOGGLE ERROR:", e)
 
     return redirect("/")
 
