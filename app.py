@@ -1,11 +1,11 @@
-from flask import Flask, render_template, request, redirect, make_response
+from flask import Flask, render_template, request, redirect, session
 import psycopg2
 import os
-import uuid
 from datetime import datetime
-import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 
 def get_conn():
@@ -17,7 +17,6 @@ def init_db():
     conn = get_conn()
     c = conn.cursor()
 
-    # usersテーブル
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -26,11 +25,10 @@ def init_db():
     )
     """)
 
-    # tasksテーブル
     c.execute("""
     CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
-        user_id TEXT,
+        user_id INTEGER,
         subject TEXT,
         task TEXT,
         deadline TEXT,
@@ -48,10 +46,10 @@ init_db()
 @app.route("/")
 def index():
 
-    user_id = request.cookies.get("user_id")
+    user_id = session.get("user_id")
 
     if not user_id:
-        user_id = str(uuid.uuid4())
+        return render_template("login.html")
 
     conn = get_conn()
     c = conn.cursor()
@@ -84,16 +82,71 @@ def index():
 
     conn.close()
 
-    resp = make_response(render_template("index.html", tasks=tasks))
-    resp.set_cookie("user_id", user_id)
+    return render_template("index.html", tasks=tasks)
 
-    return resp
+
+@app.route("/register", methods=["POST"])
+def register():
+
+    username = request.form["username"]
+    password = generate_password_hash(request.form["password"])
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute(
+        "INSERT INTO users (username, password) VALUES (%s, %s)",
+        (username, password)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+@app.route("/login", methods=["POST"])
+def login():
+
+    username = request.form["username"]
+    password = request.form["password"]
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT id, password FROM users WHERE username=%s",
+        (username,)
+    )
+
+    user = c.fetchone()
+
+    conn.close()
+
+    if user and check_password_hash(user[1], password):
+
+        session["user_id"] = user[0]
+
+        return redirect("/")
+
+    return redirect("/")
+
+
+@app.route("/logout")
+def logout():
+
+    session.clear()
+
+    return redirect("/")
 
 
 @app.route("/add", methods=["POST"])
 def add():
 
-    user_id = request.cookies.get("user_id")
+    user_id = session.get("user_id")
+
+    if not user_id:
+        return redirect("/")
 
     subject = request.form["subject"]
     task = request.form["task"]
@@ -116,7 +169,7 @@ def add():
 @app.route("/delete/<int:task_id>", methods=["POST"])
 def delete(task_id):
 
-    user_id = request.cookies.get("user_id")
+    user_id = session.get("user_id")
 
     conn = get_conn()
     c = conn.cursor()
@@ -135,7 +188,7 @@ def delete(task_id):
 @app.route("/toggle/<int:task_id>", methods=["POST"])
 def toggle(task_id):
 
-    user_id = request.cookies.get("user_id")
+    user_id = session.get("user_id")
 
     conn = get_conn()
     c = conn.cursor()
@@ -149,64 +202,6 @@ def toggle(task_id):
     conn.close()
 
     return redirect("/")
-
-
-# ===== ユーザー登録 =====
-@app.route("/register", methods=["POST"])
-def register():
-
-    username = request.form["username"]
-    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
-
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute(
-        "INSERT INTO users (username, password) VALUES (%s, %s)",
-        (username, password)
-    )
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
-
-
-# ===== ログイン =====
-@app.route("/login", methods=["POST"])
-def login():
-
-    username = request.form["username"]
-    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
-
-    conn = get_conn()
-    c = conn.cursor()
-
-    c.execute(
-        "SELECT id FROM users WHERE username=%s AND password=%s",
-        (username, password)
-    )
-
-    user = c.fetchone()
-
-    conn.close()
-
-    if user:
-        resp = make_response(redirect("/"))
-        resp.set_cookie("user_id", str(user[0]))
-        return resp
-
-    return redirect("/")
-
-
-# ===== ログアウト =====
-@app.route("/logout")
-def logout():
-
-    resp = make_response(redirect("/"))
-    resp.set_cookie("user_id", "", expires=0)
-
-    return resp
 
 
 if __name__ == "__main__":
