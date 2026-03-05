@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 
 def init_db():
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     c = conn.cursor()
 
     c.execute("""
@@ -36,7 +36,7 @@ def index():
     if not user_id:
         user_id = str(uuid.uuid4())
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -84,7 +84,7 @@ def add():
     task = request.form["task"]
     deadline = request.form["deadline"]
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     c = conn.cursor()
 
     c.execute(
@@ -103,7 +103,7 @@ def delete(task_id):
 
     user_id = request.cookies.get("user_id")
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     c = conn.cursor()
 
     c.execute(
@@ -122,7 +122,7 @@ def toggle(task_id):
 
     user_id = request.cookies.get("user_id")
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     c = conn.cursor()
 
     c.execute(
@@ -147,7 +147,7 @@ def register():
     username = request.form["username"]
     password = hashlib.sha256(request.form["password"].encode()).hexdigest()
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     c = conn.cursor()
 
     c.execute(
@@ -166,7 +166,7 @@ def login():
     username = request.form["username"]
     password = hashlib.sha256(request.form["password"].encode()).hexdigest()
 
-    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
     c = conn.cursor()
 
     c.execute(
