@@ -45,7 +45,7 @@ def add():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run()
 
 @app.route("/delete/<int:task_id>")
 def delete(task_id):
