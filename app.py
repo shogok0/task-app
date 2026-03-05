@@ -3,6 +3,7 @@ import psycopg2
 import os
 import uuid
 from datetime import datetime
+import hashlib
 
 app = Flask(__name__)
 
@@ -12,9 +13,20 @@ def get_conn():
 
 
 def init_db():
+
     conn = get_conn()
     c = conn.cursor()
 
+    # usersテーブル
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
+
+    # tasksテーブル
     c.execute("""
     CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
@@ -137,6 +149,64 @@ def toggle(task_id):
     conn.close()
 
     return redirect("/")
+
+
+# ===== ユーザー登録 =====
+@app.route("/register", methods=["POST"])
+def register():
+
+    username = request.form["username"]
+    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute(
+        "INSERT INTO users (username, password) VALUES (%s, %s)",
+        (username, password)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+
+# ===== ログイン =====
+@app.route("/login", methods=["POST"])
+def login():
+
+    username = request.form["username"]
+    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
+
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT id FROM users WHERE username=%s AND password=%s",
+        (username, password)
+    )
+
+    user = c.fetchone()
+
+    conn.close()
+
+    if user:
+        resp = make_response(redirect("/"))
+        resp.set_cookie("user_id", str(user[0]))
+        return resp
+
+    return redirect("/")
+
+
+# ===== ログアウト =====
+@app.route("/logout")
+def logout():
+
+    resp = make_response(redirect("/"))
+    resp.set_cookie("user_id", "", expires=0)
+
+    return resp
 
 
 if __name__ == "__main__":
