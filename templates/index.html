@@ -92,11 +92,11 @@ background:#ef4444;
 <b>{{task.task}}</b><br>
 締切: {{task.deadline}}<br>
 
-<a href="/delete/{{task.id}}">
+<form action="/delete/{{task.id}}" method="get">
 <button class="delete">
 削除
 </button>
-</a>
+</form>
 
 </div>
 
