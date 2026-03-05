@@ -1,13 +1,18 @@
 from flask import Flask, render_template, request, redirect, make_response
 import psycopg2
 import os
+import uuid
 from datetime import datetime
 
 app = Flask(__name__)
 
 
+def get_conn():
+    return psycopg2.connect(os.environ["DATABASE_URL"])
+
+
 def init_db():
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
+    conn = get_conn()
     c = conn.cursor()
 
     c.execute("""
@@ -36,15 +41,13 @@ def index():
     if not user_id:
         user_id = str(uuid.uuid4())
 
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
-    conn.row_factory = sqlite3.Row
+    conn = get_conn()
     c = conn.cursor()
 
-    c.execute("""
-    SELECT * FROM tasks 
-    WHERE user_id=? 
-    ORDER BY deadline ASC
-    """, (user_id,))
+    c.execute(
+        "SELECT id, subject, task, deadline, done FROM tasks WHERE user_id=%s ORDER BY deadline ASC",
+        (user_id,)
+    )
 
     rows = c.fetchall()
 
@@ -54,16 +57,16 @@ def index():
 
         days_left = None
 
-        if row["deadline"]:
-            d = datetime.strptime(row["deadline"], "%Y-%m-%d")
+        if row[3]:
+            d = datetime.strptime(row[3], "%Y-%m-%d")
             days_left = (d - datetime.now()).days
 
         tasks.append({
-            "id": row["id"],
-            "subject": row["subject"],
-            "task": row["task"],
-            "deadline": row["deadline"],
-            "done": row["done"],
+            "id": row[0],
+            "subject": row[1],
+            "task": row[2],
+            "deadline": row[3],
+            "done": row[4],
             "days_left": days_left
         })
 
@@ -84,11 +87,11 @@ def add():
     task = request.form["task"]
     deadline = request.form["deadline"]
 
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
+    conn = get_conn()
     c = conn.cursor()
 
     c.execute(
-        "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (?, ?, ?, ?, 0)",
+        "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (%s,%s,%s,%s,0)",
         (user_id, subject, task, deadline)
     )
 
@@ -103,11 +106,11 @@ def delete(task_id):
 
     user_id = request.cookies.get("user_id")
 
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
+    conn = get_conn()
     c = conn.cursor()
 
     c.execute(
-        "DELETE FROM tasks WHERE id=? AND user_id=?",
+        "DELETE FROM tasks WHERE id=%s AND user_id=%s",
         (task_id, user_id)
     )
 
@@ -122,11 +125,11 @@ def toggle(task_id):
 
     user_id = request.cookies.get("user_id")
 
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
+    conn = get_conn()
     c = conn.cursor()
 
     c.execute(
-        "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=? AND user_id=?",
+        "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=%s AND user_id=%s",
         (task_id, user_id)
     )
 
@@ -138,50 +141,3 @@ def toggle(task_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
-
-import hashlib
-
-@app.route("/register", methods=["POST"])
-def register():
-
-    username = request.form["username"]
-    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
-
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
-    c = conn.cursor()
-
-    c.execute(
-        "INSERT INTO users (username, password) VALUES (?, ?)",
-        (username, password)
-    )
-
-    conn.commit()
-    conn.close()
-
-    return redirect("/")
-
-@app.route("/login", methods=["POST"])
-def login():
-
-    username = request.form["username"]
-    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
-
-    conn = psycopg2.connect(os.environ["postgresql://taskuser:1sGy7y37XsKlIkihXjkT7SfQ76dtgv39@dpg-d6kqtr7afjfc73ekt9eg-a.oregon-postgres.render.com/taskdb_pbzx"])
-    c = conn.cursor()
-
-    c.execute(
-        "SELECT id FROM users WHERE username=? AND password=?",
-        (username, password)
-    )
-
-    user = c.fetchone()
-
-    conn.close()
-
-    if user:
-        resp = make_response(redirect("/"))
-        resp.set_cookie("user_id", str(user[0]))
-        return resp
-
-    return redirect("/")
-
