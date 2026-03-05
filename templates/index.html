@@ -70,6 +70,20 @@ display:inline-block;
 margin-bottom:5px;
 }
 
+.red{
+background:#fee2e2;
+border-left:5px solid #ef4444;
+}
+
+.orange{
+background:#ffedd5;
+border-left:5px solid #f97316;
+}
+
+.normal{
+background:#f8fafc;
+}
+
 </style>
 
 </head>
@@ -102,7 +116,15 @@ margin-bottom:5px;
 
 {% for task in tasks %}
 
-<div class="task">
+<div class="task 
+{% if task.days_left != None and task.days_left <= 0 %}
+red
+{% elif task.days_left != None and task.days_left <= 3 %}
+orange
+{% else %}
+normal
+{% endif %}
+">
 
 <div class="subject">{{task.subject}}</div>
 
