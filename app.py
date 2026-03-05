@@ -1,18 +1,18 @@
 from flask import Flask, render_template, request, redirect, make_response
-import sqlite3
-import uuid
+import psycopg2
+import os
 from datetime import datetime
 
 app = Flask(__name__)
 
 
 def init_db():
-    conn = sqlite3.connect("tasks.db")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     c = conn.cursor()
 
     c.execute("""
     CREATE TABLE IF NOT EXISTS tasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         user_id TEXT,
         subject TEXT,
         task TEXT,
@@ -36,7 +36,7 @@ def index():
     if not user_id:
         user_id = str(uuid.uuid4())
 
-    conn = sqlite3.connect("tasks.db")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -84,7 +84,7 @@ def add():
     task = request.form["task"]
     deadline = request.form["deadline"]
 
-    conn = sqlite3.connect("tasks.db")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     c = conn.cursor()
 
     c.execute(
@@ -103,7 +103,7 @@ def delete(task_id):
 
     user_id = request.cookies.get("user_id")
 
-    conn = sqlite3.connect("tasks.db")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     c = conn.cursor()
 
     c.execute(
@@ -122,7 +122,7 @@ def toggle(task_id):
 
     user_id = request.cookies.get("user_id")
 
-    conn = sqlite3.connect("tasks.db")
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     c = conn.cursor()
 
     c.execute(
@@ -138,3 +138,50 @@ def toggle(task_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
+import hashlib
+
+@app.route("/register", methods=["POST"])
+def register():
+
+    username = request.form["username"]
+    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
+
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    c = conn.cursor()
+
+    c.execute(
+        "INSERT INTO users (username, password) VALUES (?, ?)",
+        (username, password)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")
+
+@app.route("/login", methods=["POST"])
+def login():
+
+    username = request.form["username"]
+    password = hashlib.sha256(request.form["password"].encode()).hexdigest()
+
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT id FROM users WHERE username=? AND password=?",
+        (username, password)
+    )
+
+    user = c.fetchone()
+
+    conn.close()
+
+    if user:
+        resp = make_response(redirect("/"))
+        resp.set_cookie("user_id", str(user[0]))
+        return resp
+
+    return redirect("/")
+
