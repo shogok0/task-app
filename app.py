@@ -14,7 +14,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT,
         task TEXT,
-        deadline TEXT
+        deadline TEXT,
+        done INTEGER DEFAULT 0
     )
     """)
 
@@ -91,3 +92,21 @@ def delete(task_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
+@app.route("/toggle/<int:task_id>", methods=["POST"])
+def toggle(task_id):
+
+    user_id = request.cookies.get("user_id")
+
+    conn = sqlite3.connect("tasks.db")
+    c = conn.cursor()
+
+    c.execute(
+        "UPDATE tasks SET done = NOT done WHERE id=? AND user_id=?",
+        (task_id, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/")

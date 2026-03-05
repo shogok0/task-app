@@ -63,6 +63,11 @@ margin-top:5px;
 background:#ef4444;
 }
 
+.done{
+margin-top:5px;
+background:#16a34a;
+}
+
 </style>
 
 </head>
@@ -75,7 +80,7 @@ background:#ef4444;
 
 <form action="/add" method="post">
 
-<input name="task" placeholder="課題名">
+<input name="task" placeholder="課題名" required>
 
 <input name="deadline" type="date">
 
@@ -89,10 +94,26 @@ background:#ef4444;
 
 <div class="task">
 
-<b>{{task.task}}</b><br>
+{% if task.done %}
+<del>{{task.task}}</del>
+{% else %}
+<b>{{task.task}}</b>
+{% endif %}
+
+<br>
 締切: {{task.deadline}}<br>
 
-<form action="/delete/{{task.id}}" method="post"">
+<form action="/toggle/{{task.id}}" method="post">
+<button class="done">
+{% if task.done %}
+未提出に戻す
+{% else %}
+提出済み
+{% endif %}
+</button>
+</form>
+
+<form action="/delete/{{task.id}}" method="post">
 <button class="delete">
 削除
 </button>
