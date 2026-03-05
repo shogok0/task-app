@@ -61,7 +61,7 @@ def add():
     c = conn.cursor()
 
     c.execute(
-        "INSERT INTO tasks (user_id, task, deadline) VALUES (?, ?, ?)",
+        "INSERT INTO tasks (user_id, task, deadline, done) VALUES (?, ?, ?, 0)",
         (user_id, task, deadline)
     )
 
@@ -90,9 +90,6 @@ def delete(task_id):
     return redirect("/")
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
-
 @app.route("/toggle/<int:task_id>", methods=["POST"])
 def toggle(task_id):
 
@@ -102,7 +99,7 @@ def toggle(task_id):
     c = conn.cursor()
 
     c.execute(
-        "UPDATE tasks SET done = NOT done WHERE id=? AND user_id=?",
+        "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=? AND user_id=?",
         (task_id, user_id)
     )
 
@@ -110,3 +107,7 @@ def toggle(task_id):
     conn.close()
 
     return redirect("/")
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
