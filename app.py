@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, make_response
 import sqlite3
 import uuid
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -39,7 +40,26 @@ def index():
     c = conn.cursor()
 
     c.execute("SELECT * FROM tasks WHERE user_id=?", (user_id,))
-    tasks = c.fetchall()
+    rows = c.fetchall()
+
+    tasks = []
+
+    for row in rows:
+
+        days_left = ""
+
+        if row["deadline"]:
+            d = datetime.strptime(row["deadline"], "%Y-%m-%d")
+            diff = (d - datetime.now()).days
+            days_left = diff
+
+        tasks.append({
+            "id": row["id"],
+            "task": row["task"],
+            "deadline": row["deadline"],
+            "done": row["done"],
+            "days_left": days_left
+        })
 
     conn.close()
 

@@ -103,6 +103,10 @@ background:#16a34a;
 <br>
 締切: {{task.deadline}}<br>
 
+{% if task.days_left != "" %}
+あと {{task.days_left}} 日
+{% endif %}
+
 <form action="/toggle/{{task.id}}" method="post">
 <button class="done">
 {% if task.done %}
