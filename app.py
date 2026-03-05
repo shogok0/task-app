@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, render_template, request, redirect, make_response
 import sqlite3
+import uuid
 
 app = Flask(__name__)
 
@@ -11,6 +12,7 @@ def init_db():
     c.execute("""
     CREATE TABLE IF NOT EXISTS tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
         task TEXT,
         deadline TEXT
     )
@@ -26,21 +28,30 @@ init_db()
 @app.route("/")
 def index():
 
+    user_id = request.cookies.get("user_id")
+
+    if not user_id:
+        user_id = str(uuid.uuid4())
+
     conn = sqlite3.connect("tasks.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    c.execute("SELECT id, task, deadline FROM tasks")
-
+    c.execute("SELECT * FROM tasks WHERE user_id=?", (user_id,))
     tasks = c.fetchall()
 
     conn.close()
 
-    return render_template("index.html", tasks=tasks)
+    resp = make_response(render_template("index.html", tasks=tasks))
+    resp.set_cookie("user_id", user_id)
+
+    return resp
 
 
 @app.route("/add", methods=["POST"])
 def add():
+
+    user_id = request.cookies.get("user_id")
 
     task = request.form["task"]
     deadline = request.form["deadline"]
@@ -49,8 +60,8 @@ def add():
     c = conn.cursor()
 
     c.execute(
-        "INSERT INTO tasks (task, deadline) VALUES (?, ?)",
-        (task, deadline)
+        "INSERT INTO tasks (user_id, task, deadline) VALUES (?, ?, ?)",
+        (user_id, task, deadline)
     )
 
     conn.commit()
@@ -59,14 +70,18 @@ def add():
     return redirect("/")
 
 
-# GETではなくPOSTに変更（セキュリティ改善）
 @app.route("/delete/<int:task_id>", methods=["POST"])
 def delete(task_id):
+
+    user_id = request.cookies.get("user_id")
 
     conn = sqlite3.connect("tasks.db")
     c = conn.cursor()
 
-    c.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+    c.execute(
+        "DELETE FROM tasks WHERE id=? AND user_id=?",
+        (task_id, user_id)
+    )
 
     conn.commit()
     conn.close()
