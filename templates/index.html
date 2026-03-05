@@ -1,9 +1,11 @@
-
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>課題管理</title>
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2563eb">
 
 <style>
 
@@ -56,11 +58,14 @@ margin-top:8px;
 border-radius:6px;
 }
 
+.delete{
+margin-top:5px;
+background:#ef4444;
+}
+
 </style>
 
 </head>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#2563eb">
 
 <body>
 
@@ -83,11 +88,12 @@ border-radius:6px;
 {% for task in tasks %}
 
 <div class="task">
+
 <b>{{task.task}}</b><br>
 締切: {{task.deadline}}<br>
 
-<a href="/delete/{{loop.index0}}">
-<button style="margin-top:5px;background:#ef4444">
+<a href="/delete/{{task.id}}">
+<button class="delete">
 削除
 </button>
 </a>
@@ -95,6 +101,7 @@ border-radius:6px;
 </div>
 
 {% endfor %}
+
 </div>
 
 </body>
