@@ -14,6 +14,7 @@ def init_db():
     CREATE TABLE IF NOT EXISTS tasks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT,
+        subject TEXT,
         task TEXT,
         deadline TEXT,
         done INTEGER DEFAULT 0
@@ -39,22 +40,27 @@ def index():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
-    c.execute("SELECT * FROM tasks WHERE user_id=?", (user_id,))
+    c.execute("""
+    SELECT * FROM tasks 
+    WHERE user_id=? 
+    ORDER BY deadline ASC
+    """, (user_id,))
+
     rows = c.fetchall()
 
     tasks = []
 
     for row in rows:
 
-        days_left = ""
+        days_left = None
 
         if row["deadline"]:
             d = datetime.strptime(row["deadline"], "%Y-%m-%d")
-            diff = (d - datetime.now()).days
-            days_left = diff
+            days_left = (d - datetime.now()).days
 
         tasks.append({
             "id": row["id"],
+            "subject": row["subject"],
             "task": row["task"],
             "deadline": row["deadline"],
             "done": row["done"],
@@ -74,6 +80,7 @@ def add():
 
     user_id = request.cookies.get("user_id")
 
+    subject = request.form["subject"]
     task = request.form["task"]
     deadline = request.form["deadline"]
 
@@ -81,8 +88,8 @@ def add():
     c = conn.cursor()
 
     c.execute(
-        "INSERT INTO tasks (user_id, task, deadline, done) VALUES (?, ?, ?, 0)",
-        (user_id, task, deadline)
+        "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (?, ?, ?, ?, 0)",
+        (user_id, subject, task, deadline)
     )
 
     conn.commit()

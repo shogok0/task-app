@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <title>課題管理</title>
 
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#2563eb">
-
 <style>
 
 body{
@@ -24,10 +21,6 @@ border-radius:10px;
 box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
 
-h1{
-text-align:center;
-}
-
 input{
 width:100%;
 padding:10px;
@@ -43,29 +36,33 @@ background:#2563eb;
 color:white;
 border:none;
 border-radius:6px;
-font-size:16px;
-cursor:pointer;
-}
-
-button:hover{
-background:#1d4ed8;
-}
-
-.task{
-background:#f9fafb;
-padding:10px;
-margin-top:8px;
-border-radius:6px;
+margin-top:5px;
 }
 
 .delete{
-margin-top:5px;
 background:#ef4444;
 }
 
 .done{
-margin-top:5px;
 background:#16a34a;
+}
+
+.task{
+padding:10px;
+margin-top:10px;
+border-radius:6px;
+}
+
+.red{
+background:#fee2e2;
+}
+
+.orange{
+background:#ffedd5;
+}
+
+.normal{
+background:#f9fafb;
 }
 
 </style>
@@ -80,6 +77,8 @@ background:#16a34a;
 
 <form action="/add" method="post">
 
+<input name="subject" placeholder="科目" required>
+
 <input name="task" placeholder="課題名" required>
 
 <input name="deadline" type="date">
@@ -88,24 +87,35 @@ background:#16a34a;
 
 </form>
 
-<h2>課題一覧</h2>
 
 {% for task in tasks %}
 
-<div class="task">
+<div class="task 
+{% if task.days_left != None and task.days_left <= 0 %}
+red
+{% elif task.days_left != None and task.days_left <= 3 %}
+orange
+{% else %}
+normal
+{% endif %}
+">
+
+<b>{{task.subject}}</b><br>
 
 {% if task.done %}
 <del>{{task.task}}</del>
 {% else %}
-<b>{{task.task}}</b>
+{{task.task}}
 {% endif %}
 
 <br>
-締切: {{task.deadline}}<br>
 
-{% if task.days_left != "" %}
-あと {{task.days_left}} 日
+締切: {{task.deadline}}
+
+{% if task.days_left != None %}
+<br>あと {{task.days_left}} 日
 {% endif %}
+
 
 <form action="/toggle/{{task.id}}" method="post">
 <button class="done">
@@ -116,6 +126,7 @@ background:#16a34a;
 {% endif %}
 </button>
 </form>
+
 
 <form action="/delete/{{task.id}}" method="post">
 <button class="delete">
