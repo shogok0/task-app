@@ -79,13 +79,14 @@ def index():
         days_left=None
 
         if row[3]:
-            if isinstance(row[3], str):
-                d = datetime.strptime(row[3], "%Y-%m-%d").date()
-            else:
-                d = row[3]
+    d = row[3]
 
-            today = datetime.now().date()
-            days_left = (d - today).days
+    # 文字列なら日付に変換
+    if isinstance(d, str):
+        d = datetime.strptime(d, "%Y-%m-%d").date()
+
+    today = datetime.now().date()
+    days_left = (d - today).days
 
         tasks.append({
             "id":row[0],
