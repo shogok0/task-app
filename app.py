@@ -5,6 +5,11 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
 app.secret_key = os.environ.get("SECRET_KEY")
 
 app.permanent_session_lifetime = 60*60*24*30
