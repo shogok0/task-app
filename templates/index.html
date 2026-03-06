@@ -41,12 +41,43 @@ border:none;
 }
 
 .task{
+
 background:white;
-padding:14px;
-margin-top:10px;
-border-radius:10px;
+padding:16px;
+margin-top:12px;
+border-radius:12px;
+
+box-shadow:0 4px 12px rgba(0,0,0,0.08);
+
+transition:0.2s;
+
 }
 
+.task:hover{
+transform:translateY(-2px);
+box-shadow:0 8px 20px rgba(0,0,0,0.12);
+}
+
+.done{
+
+background:#dbeafe;
+border-left:6px solid #2563eb;
+
+}
+
+.warning{
+
+background:#ffedd5;
+border-left:6px solid #f97316;
+
+}
+
+.danger{
+
+background:#fee2e2;
+border-left:6px solid #ef4444;
+
+}
 .done{
 background:#dbeafe;
 border-left:5px solid #2563eb;
@@ -205,12 +236,19 @@ warning
 {% endif %}
 ">
 
-<b>{{task.subject}}</b><br>
+<b>
+{% if task.done %}
+✅
+{% endif %}
+{{task.subject}}
+</b><br>
+
 {{task.task}}<br>
-締切 {{task.deadline}}
+
+📅 締切 {{task.deadline}}
 
 {% if task.days_left != None %}
-<br>あと {{task.days_left}} 日
+<br>⏳ あと {{task.days_left}} 日
 {% endif %}
 
 <form action="/toggle/{{task.id}}" method="post">
