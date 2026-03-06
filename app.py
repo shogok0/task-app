@@ -79,7 +79,11 @@ def index():
         days_left=None
 
         if row[3]:
-            d = row[3]
+            if isinstance(row[3], str):
+                d = datetime.strptime(row[3], "%Y-%m-%d").date()
+            else:
+                d = row[3]
+
             today = datetime.now().date()
             days_left = (d - today).days
 

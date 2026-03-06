@@ -227,9 +227,13 @@ start: "{{task.deadline}}"
 
 ]
 
+let calendar
+
+document.addEventListener('DOMContentLoaded', function() {
+
 let calendarEl = document.getElementById('calendar')
 
-let calendar = new FullCalendar.Calendar(calendarEl, {
+calendar = new FullCalendar.Calendar(calendarEl, {
 
 locale: "ja",
 
@@ -237,7 +241,13 @@ initialView: 'dayGridMonth',
 
 height: "auto",
 
-events: events,
+events: events
+
+})
+
+calendar.render()
+
+})
 
 dateClick: function(info) {
 
@@ -353,10 +363,10 @@ sessionStorage.setItem("scroll",window.scrollY)
 
 <body>
 
-<p>
+<footer>
 <a href="/terms">利用規約</a> |
 <a href="/privacy">プライバシーポリシー</a>
-</p>
+</footer>
 
 <div class="container">
 
