@@ -207,6 +207,18 @@ overflow:hidden;
 max-width:100%;
 }
 
+#calendar{
+
+width:100%;
+max-width:100%;
+overflow:hidden;
+
+}
+
+.fc{
+font-size:14px;
+}
+
 </style>
 
 </head>
@@ -218,10 +230,12 @@ document.addEventListener('DOMContentLoaded', function() {
 let events = [
 
 {% for task in tasks %}
+{% if task.deadline %}
 {
 title: "{{task.subject}} {{task.task}}",
 start: "{{task.deadline}}"
 },
+{% endif %}
 {% endfor %}
 
 ]
@@ -231,6 +245,8 @@ let calendarEl = document.getElementById('calendar')
 let calendar = new FullCalendar.Calendar(calendarEl, {
 
 initialView: window.innerWidth < 600 ? 'listWeek' : 'dayGridMonth',
+
+height: "auto",
 
 events: events
 
