@@ -211,8 +211,9 @@ max-width:100%;
 </head>
 
 <script>
+let calendar = null
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", function() {
 
 let events = [
 
@@ -227,35 +228,19 @@ start: "{{task.deadline}}"
 
 ]
 
-let calendar
+let calendarEl = document.getElementById("calendar")
 
-document.addEventListener('DOMContentLoaded', function() {
-
-let calendarEl = document.getElementById('calendar')
-
+if (calendarEl) {
 calendar = new FullCalendar.Calendar(calendarEl, {
-
 locale: "ja",
-
-initialView: 'dayGridMonth',
-
+initialView: "dayGridMonth",
 height: "auto",
-
-events: events
-
-})
-
-calendar.render()
-
-})
-
+events: events,
 dateClick: function(info) {
-
 let subject = prompt("科目 (例: 数学)")
 let task = prompt("課題内容")
 
-if(subject && task){
-
+if (subject && task) {
 let form = document.createElement("form")
 form.method = "POST"
 form.action = "/add"
@@ -268,17 +253,14 @@ form.innerHTML = `
 
 document.body.appendChild(form)
 form.submit()
-
 }
-
 }
-
 })
 
 calendar.render()
+}
 
 })
-
 </script>
 
 <script>
@@ -332,7 +314,7 @@ document.querySelectorAll(".tab")[2].classList.add("active")
 document.getElementById("calendar-tab").classList.add("active")
 
 setTimeout(function(){
-calendar.updateSize()
+if(calendar){ calendar.updateSize() }
 },100)
 
 }
