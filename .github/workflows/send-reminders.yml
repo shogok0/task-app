@@ -1,0 +1,25 @@
+name: Send Deadline Reminders
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call reminder endpoint
+        env:
+          REMINDER_ENDPOINT: ${{ secrets.REMINDER_ENDPOINT }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$REMINDER_ENDPOINT" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Missing required secrets: REMINDER_ENDPOINT or CRON_SECRET"
+            exit 1
+          fi
+
+          curl -fsS -X POST "$REMINDER_ENDPOINT" \
+            -H "X-Cron-Token: $CRON_SECRET" \
+            -H "Content-Type: application/json"
