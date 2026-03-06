@@ -1,50 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>ログイン</title>
-
-</head>
-
-<body>
-
-<h2>ログイン</h2>
-
-{% if error %}
-<p style="color:red">{{error}}</p>
-{% endif %}
-
-<form action="/login" method="post">
-
-<input name="username" placeholder="ユーザー名" required>
-
-<input name="password" type="password" placeholder="パスワード" required>
-
-<button type="submit">ログイン</button>
-
-</form>
-
-<h2>新規登録</h2>
-
-<form action="/register" method="post">
-
-<input name="username" placeholder="ユーザー名" required>
-
-<input name="password" type="password" placeholder="パスワード" required>
-
-<button type="submit">登録</button>
-
-</form>
-
-</body>
-</html>
-
-
-<!DOCTYPE html>
-<html>
 <head>
 
 <meta charset="UTF-8">
@@ -52,136 +8,43 @@
 
 <title>課題管理</title>
 
-<h3>ログイン</h3>
-
-<form action="/login" method="post">
-
-<input name="username" placeholder="ユーザー名">
-
-<input name="password" type="password" placeholder="パスワード">
-
-<button type="submit">ログイン</button>
-
-</form>
-
-<h3>新規登録</h3>
-
-<form action="/register" method="post">
-
-<input name="username" placeholder="ユーザー名">
-
-<input name="password" type="password" placeholder="パスワード">
-
-<button type="submit">登録</button>
-
-</form>
-
-<a href="/logout">ログアウト</a>
-
-<link rel="manifest" href="/manifest.json">
-
-<link rel="apple-touch-icon" sizes="180x180" href="/static/icon.png">
-
-<link rel="manifest" href="/manifest.json">
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-<meta name="theme-color" content="#2563eb">
-
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
 <style>
 
 body{
-font-family: Arial;
+font-family:Arial;
 background:#f1f5f9;
-padding:30px;
-transition:0.3s;
-}
-
-.dark{
-background:#0f172a;
-color:white;
+margin:0;
 }
 
 .container{
-max-width:500px;
+max-width:600px;
 margin:auto;
-padding:15px;
-background:white;
-padding:25px;
-border-radius:16px;
-box-shadow:0 10px 25px rgba(0,0,0,0.08);
+padding:20px;
 }
 
-.dark .container{
-background:#1e293b;
+input,button{
+width:100%;
+padding:14px;
+margin-top:8px;
+border-radius:8px;
+border:1px solid #ddd;
+font-size:16px;
 }
 
 button{
-width:100%;
-padding:12px;
-margin:6px 0;
-border-radius:8px;
-border:1px solid #e2e8f0;
-}
-
-button{
-width:100%;
-padding:12px;
-border:none;
-border-radius:8px;
 background:#2563eb;
 color:white;
-margin-top:6px;
-cursor:pointer;
+border:none;
 }
 
 .task{
-padding:12px;
-margin-top:10px;
-border-radius:10px;
-background:#f8fafc;
-}
-
-.dark .task{
-background:#334155;
-}
-
-.subject{
-font-size:12px;
-background:#e0e7ff;
-padding:3px 6px;
-border-radius:6px;
-display:inline-block;
-margin-bottom:5px;
-}
-
-.red{
-background:#fee2e2;
-border-left:5px solid #ef4444;
-}
-
-.orange{
-background:#ffedd5;
-border-left:5px solid #f97316;
-}
-
-.normal{
-background:#f8fafc;
-}
-
-#calendar{
-margin-top:20px;
 background:white;
-padding:10px;
+padding:14px;
+margin-top:10px;
 border-radius:10px;
 }
 
 </style>
-
 
 </head>
 
@@ -191,17 +54,13 @@ border-radius:10px;
 
 <h1>課題管理</h1>
 
-<button onclick="toggleDark()">ダークモード</button>
-
-<input id="search" placeholder="課題検索" onkeyup="filterTasks()">
-
-<input id="subjectFilter" placeholder="科目フィルター" onkeyup="filterTasks()">
+<a href="/logout">ログアウト</a>
 
 <form action="/add" method="post">
 
-<input name="subject" placeholder="科目" required>
+<input name="subject" placeholder="科目">
 
-<input name="task" placeholder="課題名" required>
+<input name="task" placeholder="課題">
 
 <input name="deadline" type="date">
 
@@ -209,52 +68,20 @@ border-radius:10px;
 
 </form>
 
-<h2>締切カレンダー</h2>
-
-<div id="calendar"></div>
-
-<div id="tasks">
-
 {% for task in tasks %}
 
-<div class="task 
-{% if task.days_left != None and task.days_left <= 0 %}
-red
-{% elif task.days_left != None and task.days_left <= 3 %}
-orange
-{% else %}
-normal
-{% endif %}
-">
+<div class="task">
 
-<div class="subject">{{task.subject}}</div>
-
-{% if task.done %}
-<del class="taskname">{{task.task}}</del>
-{% else %}
-<b class="taskname">{{task.task}}</b>
-{% endif %}
-
-<br>
-
-締切: {{task.deadline}}
-
-{% if task.days_left != None %}
-<br>あと {{task.days_left}} 日
-{% endif %}
+<b>{{task.subject}}</b><br>
+{{task.task}}<br>
+締切 {{task.deadline}}
 
 <form action="/toggle/{{task.id}}" method="post">
-<button>
-{% if task.done %}
-未提出に戻す
-{% else %}
-提出済み
-{% endif %}
-</button>
+<button>提出済み</button>
 </form>
 
 <form action="/delete/{{task.id}}" method="post">
-<button style="background:#ef4444">削除</button>
+<button style="background:red">削除</button>
 </form>
 
 </div>
@@ -262,69 +89,6 @@ normal
 {% endfor %}
 
 </div>
-
-</div>
-
-<script>
-
-function toggleDark(){
-document.body.classList.toggle("dark")
-}
-
-function filterTasks(){
-
-let search=document.getElementById("search").value.toLowerCase()
-let subject=document.getElementById("subjectFilter").value.toLowerCase()
-
-let tasks=document.querySelectorAll(".task")
-
-tasks.forEach(task=>{
-
-let name=task.querySelector(".taskname").innerText.toLowerCase()
-let sub=task.querySelector(".subject").innerText.toLowerCase()
-
-if(name.includes(search)&&sub.includes(subject)){
-task.style.display="block"
-}else{
-task.style.display="none"
-}
-
-})
-
-}
-
-</script>
-
-<script>
-
-document.addEventListener('DOMContentLoaded', function() {
-
-let events = [
-
-{% for task in tasks %}
-{
-title: "{{task.subject}} {{task.task}}",
-start: "{{task.deadline}}"
-},
-{% endfor %}
-
-]
-
-let calendarEl = document.getElementById('calendar')
-
-let calendar = new FullCalendar.Calendar(calendarEl, {
-
-initialView: 'dayGridMonth',
-
-events: events
-
-})
-
-calendar.render()
-
-})
-
-</script>
 
 </body>
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <meta charset="UTF-8">
@@ -7,14 +8,51 @@
 
 <title>ログイン</title>
 
+<style>
+
+body{
+font-family:Arial;
+background:#f1f5f9;
+margin:0;
+}
+
+.container{
+max-width:400px;
+margin:auto;
+padding:20px;
+}
+
+input,button{
+width:100%;
+padding:14px;
+margin-top:8px;
+border-radius:8px;
+border:1px solid #ddd;
+font-size:16px;
+}
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+}
+
+.error{
+color:red;
+}
+
+</style>
+
 </head>
 
 <body>
 
+<div class="container">
+
 <h2>ログイン</h2>
 
 {% if error %}
-<p style="color:red">{{error}}</p>
+<p class="error">{{error}}</p>
 {% endif %}
 
 <form action="/login" method="post">
@@ -38,6 +76,8 @@
 <button type="submit">登録</button>
 
 </form>
+
+</div>
 
 </body>
 </html>
