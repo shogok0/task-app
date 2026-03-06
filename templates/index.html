@@ -175,6 +175,38 @@ margin-top:15px;
 display:block;
 }
 
+html,body{
+margin:0;
+padding:0;
+overflow-x:hidden;
+max-width:100%;
+}
+
+.container{
+max-width:500px;
+margin:auto;
+width:100%;
+box-sizing:border-box;
+}
+
+input,button{
+width:100%;
+box-sizing:border-box;
+}
+
+#calendar{
+margin-top:20px;
+background:white;
+padding:10px;
+border-radius:10px;
+max-width:100%;
+overflow:hidden;
+}
+
+.fc{
+max-width:100%;
+}
+
 </style>
 
 </head>
@@ -198,7 +230,7 @@ let calendarEl = document.getElementById('calendar')
 
 let calendar = new FullCalendar.Calendar(calendarEl, {
 
-initialView: 'dayGridMonth',
+initialView: window.innerWidth < 600 ? 'listWeek' : 'dayGridMonth'
 
 events: events
 
@@ -253,6 +285,26 @@ document.getElementById("calendar-tab").classList.add("active")
 }
 
 }
+
+</script>
+
+<script>
+
+window.onload=function(){
+
+let pos=sessionStorage.getItem("scroll")
+
+if(pos){
+window.scrollTo(0,pos)
+}
+
+}
+
+window.addEventListener("scroll",function(){
+
+sessionStorage.setItem("scroll",window.scrollY)
+
+})
 
 </script>
 
