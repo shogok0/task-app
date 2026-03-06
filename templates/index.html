@@ -2,470 +2,256 @@
 <html>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
 
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <title>課題管理</title>
-
 <style>
-
-body{
-font-family:Arial;
-background:#f1f5f9;
-margin:0;
-}
-
-.container{
-max-width:600px;
-margin:auto;
-padding:20px;
-}
-
-input,button{
-width:100%;
-padding:14px;
-margin-top:8px;
-border-radius:8px;
-border:1px solid #ddd;
-font-size:16px;
-}
-
-button{
-background:#2563eb;
-color:white;
-border:none;
-}
-
-.task b{
-font-size:15px;
-}
-
-.task{
-
-background:white;
-padding:10px;
-margin-top:8px;
-border-radius:10px;
-
-font-size:14px;
-
-}
-
-.task:hover{
-transform:translateY(-2px);
-box-shadow:0 8px 20px rgba(0,0,0,0.12);
-}
-
-.done{
-background:#dbeafe;
-border-left:5px solid #2563eb;
-}
-
-.warning{
-background:#ffedd5;
-border-left:5px solid #f97316;
-}
-
-.danger{
-background:#fee2e2;
-border-left:5px solid #ef4444;
-}
-
-#calendar{
-margin-top:20px;
-background:white;
-padding:10px;
-border-radius:10px;
-}
-
-label{
-display:block;
-margin-top:10px;
-font-weight:bold;
-}
-
-input[type="date"]{
-background:white;
-}
-
-.add-btn{
-margin-top:15px;
-padding:16px;
-font-size:18px;
-font-weight:bold;
-background:#2563eb;
-color:white;
-border:none;
-border-radius:10px;
-}
-
-.add-btn:active{
-background:#1d4ed8;
-}
-
-.date-box{
-position:relative;
-}
-
-.date-placeholder{
-position:absolute;
-left:12px;
-top:50%;
-transform:translateY(-50%);
-color:#888;
-pointer-events:none;
-}
-
-input[type="date"]{
-background:white;
-}
-
-.tabs{
-display:flex;
-margin-top:20px;
-border-bottom:2px solid #e5e7eb;
-}
-
-.tab{
-flex:1;
-text-align:center;
-padding:12px;
-cursor:pointer;
-font-weight:bold;
-}
-
-.tab.active{
-border-bottom:3px solid #2563eb;
-color:#2563eb;
-}
-
-.tab-content{
-display:none;
-margin-top:15px;
-}
-
-.tab-content.active{
-display:block;
-}
-
-html,body{
-margin:0;
-padding:0;
-overflow-x:hidden;
-max-width:100%;
-}
-
-.container{
-max-width:500px;
-margin:auto;
-width:100%;
-box-sizing:border-box;
-}
-
-input,button{
-width:100%;
-box-sizing:border-box;
-}
-
-#calendar{
-margin-top:20px;
-background:white;
-padding:10px;
-border-radius:10px;
-max-width:100%;
-overflow:hidden;
-}
-
-.fc{
-max-width:100%;
-}
-
-#calendar{
-
-width:100%;
-max-width:100%;
-overflow:hidden;
-
-}
-
-.fc{
-font-size:14px;
-}
-
-html,body{
-margin:0;
-padding:0;
-overflow-x:hidden;
-max-width:100%;
-}
-
+body{font-family:Arial;background:#f1f5f9;margin:0;}
+.container{max-width:600px;margin:auto;padding:20px;}
+input,button,select{width:100%;padding:12px;margin-top:8px;border-radius:8px;border:1px solid #ddd;font-size:15px;box-sizing:border-box;}
+button{background:#2563eb;color:white;border:none;}
+.task{background:white;padding:10px;margin-top:8px;border-radius:10px;font-size:14px;}
+.task:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,0.12);}
+.done{background:#dbeafe;border-left:5px solid #2563eb;}
+.warning{background:#ffedd5;border-left:5px solid #f97316;}
+.danger{background:#fee2e2;border-left:5px solid #ef4444;}
+.tabs{display:flex;margin-top:20px;border-bottom:2px solid #e5e7eb;}
+.tab{flex:1;text-align:center;padding:12px;cursor:pointer;font-weight:bold;}
+.tab.active{border-bottom:3px solid #2563eb;color:#2563eb;}
+.tab-content{display:none;margin-top:15px;}
+.tab-content.active{display:block;}
+#calendar{margin-top:20px;background:white;padding:10px;border-radius:10px;max-width:100%;overflow:hidden;}
+.fc{max-width:100%;font-size:14px;}
+.section{background:white;border-radius:10px;padding:12px;margin-top:14px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.meta{color:#334155;font-size:12px;margin-top:6px;}
+.badge{display:inline-block;background:#e2e8f0;border-radius:999px;padding:2px 8px;font-size:12px;margin-right:6px;}
 </style>
-
 </head>
 
 <script>
 let calendar = null
 
+function postTo(path, data){
+  const form = document.createElement("form")
+  form.method = "POST"
+  form.action = path
+  Object.entries(data).forEach(([k,v])=>{
+    const input = document.createElement("input")
+    input.name = k
+    input.value = v ?? ""
+    form.appendChild(input)
+  })
+  document.body.appendChild(form)
+  form.submit()
+}
+
 document.addEventListener("DOMContentLoaded", function() {
 
 let events = [
-
 {% for task in tasks %}
 {% if task.deadline %}
 {
-title: "{{task.subject}} {{task.task}}",
-start: "{{task.deadline}}"
+id: "{{task.id}}",
+title: "{{task.subject}} {{task.task}}{% if task.class_name %} [{{task.class_name}}]{% endif %}",
+start: "{{task.deadline}}",
+backgroundColor: "{% if task.done %}#2563eb{% else %}#0ea5e9{% endif %}",
+borderColor: "{% if task.done %}#1d4ed8{% else %}#0284c7{% endif %}",
+extendedProps: {
+  subject: "{{task.subject|replace('"', '\\"')}}",
+  task: "{{task.task|replace('"', '\\"')}}",
+  canManage: {{ "true" if task.can_manage else "false" }},
+  done: {{ "true" if task.done else "false" }}
+}
 },
 {% endif %}
 {% endfor %}
-
 ]
 
 let calendarEl = document.getElementById("calendar")
-
 if (calendarEl) {
-calendar = new FullCalendar.Calendar(calendarEl, {
-locale: "ja",
-initialView: "dayGridMonth",
-height: "auto",
-events: events,
-dateClick: function(info) {
-let subject = prompt("科目 (例: 数学)")
-let task = prompt("課題内容")
-
-if (subject && task) {
-let form = document.createElement("form")
-form.method = "POST"
-form.action = "/add"
-
-form.innerHTML = `
-<input name="subject" value="${subject}">
-<input name="task" value="${task}">
-<input name="deadline" value="${info.dateStr}">
-`
-
-document.body.appendChild(form)
-form.submit()
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    locale: "ja",
+    initialView: "dayGridMonth",
+    height: "auto",
+    events: events,
+    dateClick: function(info) {
+      let subject = prompt("科目 (例: 数学)")
+      if(subject === null) return
+      let task = prompt("課題内容")
+      if(task === null) return
+      postTo("/add", {subject: subject, task: task, deadline: info.dateStr, class_id: ""})
+    },
+    eventClick: function(info){
+      const p = info.event.extendedProps
+      if(!p.canManage){
+        alert("この課題は編集権限がありません")
+        return
+      }
+      const newSubject = prompt("科目を編集", p.subject)
+      if(newSubject === null) return
+      const newTask = prompt("課題内容を編集", p.task)
+      if(newTask === null) return
+      const newDeadline = prompt("締切日を編集 (YYYY-MM-DD)", info.event.startStr)
+      if(newDeadline === null) return
+      postTo(`/update/${info.event.id}`, {subject: newSubject, task: newTask, deadline: newDeadline})
+    }
+  })
+  calendar.render()
 }
-}
-})
-
-calendar.render()
-}
-
-})
-</script>
-
-<script>
-
-document.addEventListener("DOMContentLoaded", function(){
 
 let dateInput=document.getElementById("deadline")
 let placeholder=document.querySelector(".date-placeholder")
-
-if(dateInput){
-
-dateInput.addEventListener("change",function(){
-
-if(dateInput.value){
-placeholder.style.display="none"
+if(dateInput && placeholder){
+  dateInput.addEventListener("change",function(){
+    if(dateInput.value){ placeholder.style.display="none" }
+  })
 }
-
 })
-
-}
-
-})
-
-</script>
-
-<script>
 
 function showTab(tab){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"))
+  document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"))
 
-document.querySelectorAll(".tab").forEach(t=>{
-t.classList.remove("active")
-})
-
-document.querySelectorAll(".tab-content").forEach(c=>{
-c.classList.remove("active")
-})
-
-if(tab==="tasks"){
-document.querySelectorAll(".tab")[0].classList.add("active")
-document.getElementById("tasks-tab").classList.add("active")
+  if(tab==="tasks"){
+    document.querySelectorAll(".tab")[0].classList.add("active")
+    document.getElementById("tasks-tab").classList.add("active")
+  }
+  if(tab==="done"){
+    document.querySelectorAll(".tab")[1].classList.add("active")
+    document.getElementById("done-tab").classList.add("active")
+  }
+  if(tab==="calendar"){
+    document.querySelectorAll(".tab")[2].classList.add("active")
+    document.getElementById("calendar-tab").classList.add("active")
+    setTimeout(function(){ if(calendar){ calendar.updateSize() } },100)
+  }
 }
-
-if(tab==="done"){
-document.querySelectorAll(".tab")[1].classList.add("active")
-document.getElementById("done-tab").classList.add("active")
-}
-
-if(tab==="calendar"){
-
-document.querySelectorAll(".tab")[2].classList.add("active")
-document.getElementById("calendar-tab").classList.add("active")
-
-setTimeout(function(){
-if(calendar){ calendar.updateSize() }
-},100)
-
-}
-
-}
-
-</script>
-
-<script>
-
-window.onload=function(){
-
-let pos=sessionStorage.getItem("scroll")
-
-if(pos){
-window.scrollTo(0,pos)
-}
-
-}
-
-window.addEventListener("scroll",function(){
-
-sessionStorage.setItem("scroll",window.scrollY)
-
-})
-
 </script>
 
 <body>
-
 <footer>
 <a href="/terms">利用規約</a> |
 <a href="/privacy">プライバシーポリシー</a>
 </footer>
 
 <div class="container">
-
 <h1>課題管理</h1>
-
 <a href="/logout">ログアウト</a>
 
+<div class="section">
+<h3>課題追加</h3>
 <form action="/add" method="post">
-
-<input name="subject" placeholder="📚 科目">
-
-<input name="task" placeholder="📝 課題">
-
-<label for="deadline">📅 締切日</label>
-<div class="date-box">
-<input id="deadline" name="deadline" type="date">
-<span class="date-placeholder">日付選択</span>
+<input name="subject" placeholder="科目" required>
+<input name="task" placeholder="課題" required>
+<label for="deadline">締切日</label>
+<input id="deadline" name="deadline" type="date" required>
+<select name="class_id">
+<option value="">個人課題</option>
+{% for c in classes %}
+<option value="{{c.id}}">{{c.name}} ({{c.role}})</option>
+{% endfor %}
+</select>
+<button type="submit">＋ 課題追加</button>
+</form>
 </div>
 
-<button class="add-btn" type="submit">＋ 課題追加</button>
-
+<div class="section">
+<h3>締切通知（メール）</h3>
+<form action="/settings/notifications" method="post">
+<input name="email" type="email" value="{{notify.email}}" placeholder="通知先メールアドレス">
+<div class="row2">
+<input name="notify_before_days" type="number" min="0" max="30" value="{{notify.before_days}}" placeholder="何日前に通知">
+<label style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+<input type="checkbox" name="notify_enabled" {% if notify.enabled %}checked{% endif %} style="width:auto;"> 通知を有効化
+</label>
+</div>
+<button type="submit">通知設定を保存</button>
 </form>
+<div class="meta">Render Cron から <code>/cron/send-reminders</code> をPOST実行すると配信されます。</div>
+</div>
+
+<div class="section">
+<h3>学校・クラス</h3>
+<form action="/schools/create" method="post">
+<input name="name" placeholder="学校名（作成）">
+<button type="submit">学校を作成</button>
+</form>
+<form action="/classes/create" method="post">
+<input name="name" placeholder="クラス名（作成）" required>
+<select name="school_id">
+<option value="">学校なし</option>
+{% for s in schools %}
+<option value="{{s.id}}">{{s.name}}</option>
+{% endfor %}
+</select>
+<button type="submit">クラスを作成</button>
+</form>
+<form action="/classes/join" method="post">
+<input name="join_code" placeholder="参加コード（例: AB12CD34）" required>
+<button type="submit">クラスに参加</button>
+</form>
+{% if classes %}
+<div class="meta">
+{% for c in classes %}
+<div><span class="badge">{{c.role}}</span>{{c.name}} {% if c.school_name %}({{c.school_name}}){% endif %} / 参加コード: {{c.join_code}}</div>
+{% endfor %}
+</div>
+{% endif %}
+</div>
 
 <div class="tabs">
-
-<div class="tab active" onclick="showTab('tasks')">
-📚 課題
-</div>
-
-<div class="tab" onclick="showTab('done')">
-✅ 提出済み
-</div>
-
-<div class="tab" onclick="showTab('calendar')">
-📅 カレンダー
-</div>
-
+<div class="tab active" onclick="showTab('tasks')">課題</div>
+<div class="tab" onclick="showTab('done')">提出済み</div>
+<div class="tab" onclick="showTab('calendar')">カレンダー</div>
 </div>
 
 <div id="calendar-tab" class="tab-content">
-
-<h2>締切カレンダー</h2>
+<h2>締切カレンダー（クリックで編集）</h2>
 <div id="calendar"></div>
-
 </div>
 
 <div id="tasks-tab" class="tab-content active">
-
 {% for task in tasks %}
-
-<div class="task 
-{% if task.done %}
-done
-{% elif task.days_left != None and task.days_left <= 1 %}
-danger
-{% elif task.days_left != None and task.days_left <= 3 %}
-warning
-{% endif %}
-">
-
-<b>
-{% if task.done %}
-✅
-{% endif %}
-{{task.subject}}
-</b><br>
-
+{% if not task.done %}
+<div class="task {% if task.days_left != None and task.days_left <= 1 %}danger{% elif task.days_left != None and task.days_left <= 3 %}warning{% endif %}">
+<b>{{task.subject}}</b>
+{% if task.class_name %}<span class="badge">共有: {{task.class_name}}</span>{% endif %}<br>
 {{task.task}}<br>
-
 📅 締切 {{task.deadline}}
-
-{% if task.days_left != None %}
-<br>⏳ あと {{task.days_left}} 日
+{% if task.days_left != None %}<br>⏳ あと {{task.days_left}} 日{% endif %}
+<div class="meta">作成者: {{task.owner_name}}</div>
+{% if task.can_toggle %}
+<form action="/toggle/{{task.id}}" method="post"><button>提出済みにする</button></form>
 {% endif %}
-
-<form action="/toggle/{{task.id}}" method="post">
-
-<button>
-{% if task.done %}
-未提出に戻す
-{% else %}
-提出済み
+{% if task.can_manage %}
+<form action="/delete/{{task.id}}" method="post"><button style="background:red">削除</button></form>
 {% endif %}
-</button>
-
-</form>
-
-<form action="/delete/{{task.id}}" method="post">
-<button style="background:red">削除</button>
-</form>
-
 </div>
-
+{% endif %}
 {% endfor %}
-
 </div>
 
 <div id="done-tab" class="tab-content">
-
 {% for task in tasks %}
 {% if task.done %}
-
 <div class="task done">
-
-<b>✅ {{task.subject}}</b><br>
+<b>✅ {{task.subject}}</b>
+{% if task.class_name %}<span class="badge">共有: {{task.class_name}}</span>{% endif %}<br>
 {{task.task}}<br>
-
 📅 締切 {{task.deadline}}
-
+{% if task.can_toggle %}
+<form action="/toggle/{{task.id}}" method="post"><button>未提出に戻す</button></form>
+{% endif %}
 </div>
-
 {% endif %}
 {% endfor %}
-
 </div>
 
 </div>
-
 </body>
 </html>
