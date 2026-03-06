@@ -74,6 +74,16 @@ padding:10px;
 border-radius:10px;
 }
 
+label{
+display:block;
+margin-top:10px;
+font-weight:bold;
+}
+
+input[type="date"]{
+background:white;
+}
+
 </style>
 
 </head>
@@ -123,7 +133,8 @@ calendar.render()
 
 <input name="task" placeholder="課題">
 
-<input name="deadline" type="date">
+<label for="deadline">締切日</label>
+<input id="deadline" name="deadline" type="date">
 
 <button type="submit">追加</button>
 
