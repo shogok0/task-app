@@ -99,6 +99,23 @@ border-radius:10px;
 background:#1d4ed8;
 }
 
+.date-box{
+position:relative;
+}
+
+.date-placeholder{
+position:absolute;
+left:12px;
+top:50%;
+transform:translateY(-50%);
+color:#888;
+pointer-events:none;
+}
+
+input[type="date"]{
+background:white;
+}
+
 </style>
 
 </head>
@@ -134,6 +151,21 @@ calendar.render()
 
 </script>
 
+<script>
+
+let dateInput=document.getElementById("deadline")
+let placeholder=document.querySelector(".date-placeholder")
+
+dateInput.addEventListener("change",function(){
+
+if(dateInput.value){
+placeholder.style.display="none"
+}
+
+})
+
+</script>
+
 <body>
 
 <div class="container">
@@ -149,7 +181,10 @@ calendar.render()
 <input name="task" placeholder="課題">
 
 <label for="deadline">締切日</label>
-<input id="deadline" name="deadline" type="date" placeholder="日付選択" onfocus="this.showPicker()">
+<div class="date-box">
+<input id="deadline" name="deadline" type="date">
+<span class="date-placeholder">日付選択</span>
+</div>
 
 <button class="add-btn" type="submit">＋ 課題追加</button>
 
