@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
 <head>
 
 <meta charset="UTF-8">
@@ -64,9 +67,47 @@ background:#fee2e2;
 border-left:5px solid #ef4444;
 }
 
+#calendar{
+margin-top:20px;
+background:white;
+padding:10px;
+border-radius:10px;
+}
+
 </style>
 
 </head>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function() {
+
+let events = [
+
+{% for task in tasks %}
+{
+title: "{{task.subject}} {{task.task}}",
+start: "{{task.deadline}}"
+},
+{% endfor %}
+
+]
+
+let calendarEl = document.getElementById('calendar')
+
+let calendar = new FullCalendar.Calendar(calendarEl, {
+
+initialView: 'dayGridMonth',
+
+events: events
+
+})
+
+calendar.render()
+
+})
+
+</script>
 
 <body>
 
@@ -87,6 +128,9 @@ border-left:5px solid #ef4444;
 <button type="submit">追加</button>
 
 </form>
+
+<h2>締切カレンダー</h2>
+<div id="calendar"></div>
 
 {% for task in tasks %}
 
