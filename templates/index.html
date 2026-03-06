@@ -3,6 +3,53 @@
 <head>
 
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>ログイン</title>
+
+</head>
+
+<body>
+
+<h2>ログイン</h2>
+
+{% if error %}
+<p style="color:red">{{error}}</p>
+{% endif %}
+
+<form action="/login" method="post">
+
+<input name="username" placeholder="ユーザー名" required>
+
+<input name="password" type="password" placeholder="パスワード" required>
+
+<button type="submit">ログイン</button>
+
+</form>
+
+<h2>新規登録</h2>
+
+<form action="/register" method="post">
+
+<input name="username" placeholder="ユーザー名" required>
+
+<input name="password" type="password" placeholder="パスワード" required>
+
+<button type="submit">登録</button>
+
+</form>
+
+</body>
+</html>
+
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>課題管理</title>
 
 <h3>ログイン</h3>
@@ -62,6 +109,7 @@ color:white;
 .container{
 max-width:500px;
 margin:auto;
+padding:15px;
 background:white;
 padding:25px;
 border-radius:16px;
@@ -72,7 +120,7 @@ box-shadow:0 10px 25px rgba(0,0,0,0.08);
 background:#1e293b;
 }
 
-input{
+button{
 width:100%;
 padding:12px;
 margin:6px 0;

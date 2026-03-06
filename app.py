@@ -14,78 +14,33 @@ def get_conn():
 
 def init_db():
 
-    try:
-        conn = get_conn()
-        c = conn.cursor()
+    conn = get_conn()
+    c = conn.cursor()
 
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE,
-            password TEXT
-        )
-        """)
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
 
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id SERIAL PRIMARY KEY,
-            user_id INTEGER,
-            subject TEXT,
-            task TEXT,
-            deadline TEXT,
-            done INTEGER DEFAULT 0
-        )
-        """)
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS tasks (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        subject TEXT,
+        task TEXT,
+        deadline TEXT,
+        done INTEGER DEFAULT 0
+    )
+    """)
 
-        conn.commit()
-        conn.close()
-
-    except Exception as e:
-        print("DB ERROR:", e)
+    conn.commit()
+    conn.close()
 
 
 init_db()
-
-
-def get_tasks(user_id):
-
-    tasks = []
-
-    try:
-
-        conn = get_conn()
-        c = conn.cursor()
-
-        c.execute(
-            "SELECT id, subject, task, deadline, done FROM tasks WHERE user_id=%s ORDER BY deadline ASC",
-            (user_id,)
-        )
-
-        rows = c.fetchall()
-
-        for row in rows:
-
-            days_left = None
-
-            if row[3]:
-                d = datetime.strptime(row[3], "%Y-%m-%d")
-                days_left = (d - datetime.now()).days
-
-            tasks.append({
-                "id": row[0],
-                "subject": row[1],
-                "task": row[2],
-                "deadline": row[3],
-                "done": row[4],
-                "days_left": days_left
-            })
-
-        conn.close()
-
-    except Exception as e:
-        print("TASK ERROR:", e)
-
-    return tasks
 
 
 @app.route("/")
@@ -94,9 +49,38 @@ def index():
     user_id = session.get("user_id")
 
     if not user_id:
-        return render_template("login.html")
+        return render_template("login.html", error=None)
 
-    tasks = get_tasks(user_id)
+    conn = get_conn()
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT id, subject, task, deadline, done FROM tasks WHERE user_id=%s ORDER BY deadline ASC",
+        (user_id,)
+    )
+
+    rows = c.fetchall()
+
+    tasks = []
+
+    for row in rows:
+
+        days_left = None
+
+        if row[3]:
+            d = datetime.strptime(row[3], "%Y-%m-%d")
+            days_left = (d - datetime.now()).days
+
+        tasks.append({
+            "id": row[0],
+            "subject": row[1],
+            "task": row[2],
+            "deadline": row[3],
+            "done": row[4],
+            "days_left": days_left
+        })
+
+    conn.close()
 
     return render_template("index.html", tasks=tasks)
 
@@ -104,24 +88,33 @@ def index():
 @app.route("/register", methods=["POST"])
 def register():
 
+    username = request.form["username"]
+    password = request.form["password"]
+
+    if not username or not password:
+        return render_template("login.html", error="入力してください")
+
+    conn = get_conn()
+    c = conn.cursor()
+
     try:
 
-        username = request.form["username"]
-        password = generate_password_hash(request.form["password"])
-
-        conn = get_conn()
-        c = conn.cursor()
+        hashed = generate_password_hash(password)
 
         c.execute(
             "INSERT INTO users (username, password) VALUES (%s,%s)",
-            (username, password)
+            (username, hashed)
         )
 
         conn.commit()
+
+    except:
+
         conn.close()
 
-    except Exception as e:
-        print("REGISTER ERROR:", e)
+        return render_template("login.html", error="そのユーザー名は使われています")
+
+    conn.close()
 
     return redirect("/")
 
@@ -129,33 +122,28 @@ def register():
 @app.route("/login", methods=["POST"])
 def login():
 
-    try:
+    username = request.form["username"]
+    password = request.form["password"]
 
-        username = request.form["username"]
-        password = request.form["password"]
+    conn = get_conn()
+    c = conn.cursor()
 
-        conn = get_conn()
-        c = conn.cursor()
+    c.execute(
+        "SELECT id, password FROM users WHERE username=%s",
+        (username,)
+    )
 
-        c.execute(
-            "SELECT id, password FROM users WHERE username=%s",
-            (username,)
-        )
+    user = c.fetchone()
 
-        user = c.fetchone()
+    conn.close()
 
-        conn.close()
+    if user and check_password_hash(user[1], password):
 
-        if user and check_password_hash(user[1], password):
+        session["user_id"] = user[0]
 
-            session["user_id"] = user[0]
+        return redirect("/")
 
-            return redirect("/")
-
-    except Exception as e:
-        print("LOGIN ERROR:", e)
-
-    return redirect("/")
+    return render_template("login.html", error="ログイン失敗")
 
 
 @app.route("/logout")
@@ -174,25 +162,20 @@ def add():
     if not user_id:
         return redirect("/")
 
-    try:
+    subject = request.form["subject"]
+    task = request.form["task"]
+    deadline = request.form["deadline"]
 
-        subject = request.form["subject"]
-        task = request.form["task"]
-        deadline = request.form["deadline"]
+    conn = get_conn()
+    c = conn.cursor()
 
-        conn = get_conn()
-        c = conn.cursor()
+    c.execute(
+        "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (%s,%s,%s,%s,0)",
+        (user_id, subject, task, deadline)
+    )
 
-        c.execute(
-            "INSERT INTO tasks (user_id, subject, task, deadline, done) VALUES (%s,%s,%s,%s,0)",
-            (user_id, subject, task, deadline)
-        )
-
-        conn.commit()
-        conn.close()
-
-    except Exception as e:
-        print("ADD ERROR:", e)
+    conn.commit()
+    conn.close()
 
     return redirect("/")
 
@@ -202,21 +185,16 @@ def delete(task_id):
 
     user_id = session.get("user_id")
 
-    try:
+    conn = get_conn()
+    c = conn.cursor()
 
-        conn = get_conn()
-        c = conn.cursor()
+    c.execute(
+        "DELETE FROM tasks WHERE id=%s AND user_id=%s",
+        (task_id, user_id)
+    )
 
-        c.execute(
-            "DELETE FROM tasks WHERE id=%s AND user_id=%s",
-            (task_id, user_id)
-        )
-
-        conn.commit()
-        conn.close()
-
-    except Exception as e:
-        print("DELETE ERROR:", e)
+    conn.commit()
+    conn.close()
 
     return redirect("/")
 
@@ -226,24 +204,19 @@ def toggle(task_id):
 
     user_id = session.get("user_id")
 
-    try:
+    conn = get_conn()
+    c = conn.cursor()
 
-        conn = get_conn()
-        c = conn.cursor()
+    c.execute(
+        "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=%s AND user_id=%s",
+        (task_id, user_id)
+    )
 
-        c.execute(
-            "UPDATE tasks SET done = CASE WHEN done=1 THEN 0 ELSE 1 END WHERE id=%s AND user_id=%s",
-            (task_id, user_id)
-        )
-
-        conn.commit()
-        conn.close()
-
-    except Exception as e:
-        print("TOGGLE ERROR:", e)
+    conn.commit()
+    conn.close()
 
     return redirect("/")
-
+    
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
