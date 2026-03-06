@@ -147,6 +147,34 @@ input[type="date"]{
 background:white;
 }
 
+.tabs{
+display:flex;
+margin-top:20px;
+border-bottom:2px solid #e5e7eb;
+}
+
+.tab{
+flex:1;
+text-align:center;
+padding:12px;
+cursor:pointer;
+font-weight:bold;
+}
+
+.tab.active{
+border-bottom:3px solid #2563eb;
+color:#2563eb;
+}
+
+.tab-content{
+display:none;
+margin-top:15px;
+}
+
+.tab-content.active{
+display:block;
+}
+
 </style>
 
 </head>
@@ -197,6 +225,37 @@ placeholder.style.display="none"
 
 </script>
 
+<script>
+
+function showTab(tab){
+
+document.querySelectorAll(".tab").forEach(t=>{
+t.classList.remove("active")
+})
+
+document.querySelectorAll(".tab-content").forEach(c=>{
+c.classList.remove("active")
+})
+
+if(tab==="tasks"){
+document.querySelectorAll(".tab")[0].classList.add("active")
+document.getElementById("tasks-tab").classList.add("active")
+}
+
+if(tab==="done"){
+document.querySelectorAll(".tab")[1].classList.add("active")
+document.getElementById("done-tab").classList.add("active")
+}
+
+if(tab==="calendar"){
+document.querySelectorAll(".tab")[2].classList.add("active")
+document.getElementById("calendar-tab").classList.add("active")
+}
+
+}
+
+</script>
+
 <body>
 
 <div class="container">
@@ -221,8 +280,30 @@ placeholder.style.display="none"
 
 </form>
 
+<div class="tabs">
+
+<div class="tab active" onclick="showTab('tasks')">
+📚 課題
+</div>
+
+<div class="tab" onclick="showTab('done')">
+✅ 提出済み
+</div>
+
+<div class="tab" onclick="showTab('calendar')">
+📅 カレンダー
+</div>
+
+</div>
+
+<div id="calendar-tab" class="tab-content">
+
 <h2>締切カレンダー</h2>
 <div id="calendar"></div>
+
+</div>
+
+<div id="tasks-tab" class="tab-content active">
 
 {% for task in tasks %}
 
@@ -270,6 +351,27 @@ warning
 </div>
 
 {% endfor %}
+
+</div>
+
+<div id="done-tab" class="tab-content">
+
+{% for task in tasks %}
+{% if task.done %}
+
+<div class="task done">
+
+<b>✅ {{task.subject}}</b><br>
+{{task.task}}<br>
+
+📅 締切 {{task.deadline}}
+
+</div>
+
+{% endif %}
+{% endfor %}
+
+</div>
 
 </div>
 
