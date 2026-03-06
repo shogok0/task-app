@@ -84,6 +84,21 @@ input[type="date"]{
 background:white;
 }
 
+.add-btn{
+margin-top:15px;
+padding:16px;
+font-size:18px;
+font-weight:bold;
+background:#2563eb;
+color:white;
+border:none;
+border-radius:10px;
+}
+
+.add-btn:active{
+background:#1d4ed8;
+}
+
 </style>
 
 </head>
@@ -136,7 +151,7 @@ calendar.render()
 <label for="deadline">締切日</label>
 <input id="deadline" name="deadline" type="date" placeholder="日付選択" onfocus="this.showPicker()">
 
-<button type="submit">追加</button>
+<button class="add-btn" type="submit">＋ 課題追加</button>
 
 </form>
 
