@@ -49,6 +49,21 @@ background:#dbeafe;
 border-left:5px solid #2563eb;
 }
 
+.done{
+background:#dbeafe;
+border-left:5px solid #2563eb;
+}
+
+.warning{
+background:#ffedd5;
+border-left:5px solid #f97316;
+}
+
+.danger{
+background:#fee2e2;
+border-left:5px solid #ef4444;
+}
+
 </style>
 
 </head>
@@ -75,11 +90,23 @@ border-left:5px solid #2563eb;
 
 {% for task in tasks %}
 
-<div class="task {% if task.done %}done{% endif %}">
+<div class="task 
+{% if task.done %}
+done
+{% elif task.days_left != None and task.days_left <= 1 %}
+danger
+{% elif task.days_left != None and task.days_left <= 3 %}
+warning
+{% endif %}
+">
 
 <b>{{task.subject}}</b><br>
 {{task.task}}<br>
 締切 {{task.deadline}}
+
+{% if task.days_left != None %}
+<br>あと {{task.days_left}} 日
+{% endif %}
 
 <form action="/toggle/{{task.id}}" method="post">
 
