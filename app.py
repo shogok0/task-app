@@ -70,9 +70,9 @@ def index():
         days_left=None
 
         if row[3]:
-            d=datetime.strptime(row[3],"%Y-%m-%d")
-            days_left=(d-datetime.now()).days
-
+            d=datetime.strptime(row[3],"%Y-%m-%d").date()
+            today=datetime.now().date()
+            days_left=(d-today).days
         tasks.append({
             "id":row[0],
             "subject":row[1],
