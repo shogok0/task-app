@@ -219,7 +219,7 @@ def send_deadline_reminders():
                     AND u.notify_enabled = 1
                     AND u.email IS NOT NULL
                     AND u.email <> ''
-                    AND t.deadline = CURRENT_DATE + (u.notify_before_days * INTERVAL '1 day')
+                    AND t.deadline = CURRENT_DATE + u.notify_before_days
                     AND NOT EXISTS (
                         SELECT 1
                         FROM task_notifications tn
@@ -251,7 +251,7 @@ def send_deadline_reminders():
                     AND u.notify_enabled = 1
                     AND u.email IS NOT NULL
                     AND u.email <> ''
-                    AND t.deadline = CURRENT_DATE + (u.notify_before_days * INTERVAL '1 day')
+                    AND t.deadline = CURRENT_DATE + u.notify_before_days
                     AND NOT EXISTS (
                         SELECT 1
                         FROM task_notifications tn
