@@ -44,6 +44,11 @@ margin-top:10px;
 border-radius:10px;
 }
 
+.done{
+background:#dbeafe;
+border-left:5px solid #2563eb;
+}
+
 </style>
 
 </head>
@@ -70,14 +75,22 @@ border-radius:10px;
 
 {% for task in tasks %}
 
-<div class="task">
+<div class="task {% if task.done %}done{% endif %}">
 
 <b>{{task.subject}}</b><br>
 {{task.task}}<br>
 締切 {{task.deadline}}
 
 <form action="/toggle/{{task.id}}" method="post">
-<button>提出済み</button>
+
+<button>
+{% if task.done %}
+未提出に戻す
+{% else %}
+提出済み
+{% endif %}
+</button>
+
 </form>
 
 <form action="/delete/{{task.id}}" method="post">
