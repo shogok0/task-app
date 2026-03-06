@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <title>ログイン</title>
+
 </head>
 
 <body>
 
 <h2>ログイン</h2>
+
+{% if error %}
+<p style="color:red">{{error}}</p>
+{% endif %}
 
 <form action="/login" method="post">
 
@@ -18,7 +26,6 @@
 <button type="submit">ログイン</button>
 
 </form>
-
 
 <h2>新規登録</h2>
 
