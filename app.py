@@ -10,6 +10,11 @@ app = Flask(__name__)
 def privacy():
     return render_template("privacy.html")
 
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
 app.secret_key = os.environ.get("SECRET_KEY")
 
 app.permanent_session_lifetime = 60*60*24*30
@@ -74,9 +79,10 @@ def index():
         days_left=None
 
         if row[3]:
-            d=datetime.strptime(row[3],"%Y-%m-%d").date()
-            today=datetime.now().date()
-            days_left=(d-today).days
+            d = row[3]
+            today = datetime.now().date()
+            days_left = (d - today).days
+
         tasks.append({
             "id":row[0],
             "subject":row[1],
