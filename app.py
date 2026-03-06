@@ -5,7 +5,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY","dev-secret")
+app.secret_key = os.environ.get("SECRET_KEY")
 
 app.permanent_session_lifetime = 60*60*24*30
 
@@ -33,14 +33,13 @@ def init_db():
         user_id INTEGER,
         subject TEXT,
         task TEXT,
-        deadline TEXT,
+        deadline DATE,
         done INTEGER DEFAULT 0
     )
     """)
 
     conn.commit()
     conn.close()
-
 
 init_db()
 
@@ -110,8 +109,9 @@ def register():
 
         conn.commit()
 
-    except:
+    except psycopg2.errors.UniqueViolation:
 
+        conn.rollback()
         conn.close()
         return render_template("login.html",error="そのユーザー名は使われています")
 

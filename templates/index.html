@@ -2,7 +2,10 @@
 <html>
 
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
 
 <head>
 
@@ -40,47 +43,24 @@ color:white;
 border:none;
 }
 
+.task b{
+font-size:15px;
+}
+
 .task{
 
 background:white;
-padding:16px;
-margin-top:12px;
-border-radius:12px;
+padding:10px;
+margin-top:8px;
+border-radius:10px;
 
-box-shadow:0 4px 12px rgba(0,0,0,0.08);
-
-transition:0.2s;
+font-size:14px;
 
 }
 
 .task:hover{
 transform:translateY(-2px);
 box-shadow:0 8px 20px rgba(0,0,0,0.12);
-}
-
-.done{
-
-background:#dbeafe;
-border-left:6px solid #2563eb;
-
-}
-
-.warning{
-
-background:#ffedd5;
-border-left:6px solid #f97316;
-
-}
-
-.danger{
-
-background:#fee2e2;
-border-left:6px solid #ef4444;
-
-}
-.done{
-background:#dbeafe;
-border-left:5px solid #2563eb;
 }
 
 .done{
@@ -219,6 +199,13 @@ overflow:hidden;
 font-size:14px;
 }
 
+html,body{
+margin:0;
+padding:0;
+overflow-x:hidden;
+max-width:100%;
+}
+
 </style>
 
 </head>
@@ -244,11 +231,37 @@ let calendarEl = document.getElementById('calendar')
 
 let calendar = new FullCalendar.Calendar(calendarEl, {
 
-initialView: window.innerWidth < 600 ? 'listWeek' : 'dayGridMonth',
+locale: "ja",
+
+initialView: 'dayGridMonth',
 
 height: "auto",
 
-events: events
+events: events,
+
+dateClick: function(info) {
+
+let subject = prompt("科目 (例: 数学)")
+let task = prompt("課題内容")
+
+if(subject && task){
+
+let form = document.createElement("form")
+form.method = "POST"
+form.action = "/add"
+
+form.innerHTML = `
+<input name="subject" value="${subject}">
+<input name="task" value="${task}">
+<input name="deadline" value="${info.dateStr}">
+`
+
+document.body.appendChild(form)
+form.submit()
+
+}
+
+}
 
 })
 
@@ -260,13 +273,21 @@ calendar.render()
 
 <script>
 
+document.addEventListener("DOMContentLoaded", function(){
+
 let dateInput=document.getElementById("deadline")
 let placeholder=document.querySelector(".date-placeholder")
+
+if(dateInput){
 
 dateInput.addEventListener("change",function(){
 
 if(dateInput.value){
 placeholder.style.display="none"
+}
+
+})
+
 }
 
 })
@@ -296,8 +317,14 @@ document.getElementById("done-tab").classList.add("active")
 }
 
 if(tab==="calendar"){
+
 document.querySelectorAll(".tab")[2].classList.add("active")
 document.getElementById("calendar-tab").classList.add("active")
+
+setTimeout(function(){
+calendar.updateSize()
+},100)
+
 }
 
 }
