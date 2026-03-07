@@ -327,7 +327,7 @@ def load_dashboard_data(user_id):
         with conn.cursor() as c:
             c.execute(
                 """
-                SELECT cm.class_id, cm.role, cl.name, cl.join_code, sc.id, sc.name
+                SELECT cm.class_id, cm.role, cl.name, cl.join_code, sc.id, sc.name, cl.created_by
                 FROM class_members cm
                 JOIN classes cl ON cl.id = cm.class_id
                 LEFT JOIN schools sc ON sc.id = cl.school_id
@@ -418,7 +418,15 @@ def load_dashboard_data(user_id):
         )
 
     classes = [
-        {"id": row[0], "role": row[1], "name": row[2], "join_code": row[3], "school_id": row[4], "school_name": row[5]}
+        {
+            "id": row[0],
+            "role": row[1],
+            "name": row[2],
+            "join_code": row[3],
+            "school_id": row[4],
+            "school_name": row[5],
+            "can_delete": row[6] == user_id,
+        }
         for row in memberships
     ]
 
@@ -634,6 +642,29 @@ def join_class():
 
     return redirect("/")
 
+
+
+@app.route("/classes/delete/<int:class_id>", methods=["POST"])
+def delete_class(class_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect("/")
+
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("SELECT created_by FROM classes WHERE id=%s", (class_id,))
+                row = c.fetchone()
+                if not row:
+                    return redirect("/")
+                if row[0] != user_id:
+                    return redirect("/")
+
+                c.execute("DELETE FROM classes WHERE id=%s", (class_id,))
+    except Exception:
+        app.logger.exception("Failed to delete class")
+
+    return redirect("/")
 
 def get_task_permission(c, task_id, user_id):
     c.execute(
