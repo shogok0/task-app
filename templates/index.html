@@ -31,6 +31,7 @@ button{background:#2563eb;color:white;border:none;}
 .meta{color:#334155;font-size:12px;margin-top:6px;}
 .badge{display:inline-block;background:#e2e8f0;border-radius:999px;padding:2px 8px;font-size:12px;margin-right:6px;}
 .delete-link-btn{background:none;border:none;color:#dc2626;font-size:13px;padding:0;margin-top:6px;cursor:pointer;text-decoration:underline;width:auto;}
+.leave-btn{background:#f59e0b;color:white;border:none;width:auto;padding:8px 12px;font-size:13px;margin-left:8px;}
 </style>
 </head>
 
@@ -177,29 +178,30 @@ function showTab(tab){
 </div>
 
 <div class="section">
-<h3>学校・クラス</h3>
-<form action="/schools/create" method="post">
-<input name="name" placeholder="学校名（作成）">
-<button type="submit">学校を作成</button>
-</form>
+<h3>共有チーム</h3>
 <form action="/classes/create" method="post">
-<input name="name" placeholder="クラス名（作成）" required>
-<select name="school_id">
-<option value="">学校なし</option>
-{% for s in schools %}
-<option value="{{s.id}}">{{s.name}}</option>
-{% endfor %}
-</select>
-<button type="submit">クラスを作成</button>
+<input name="name" placeholder="チーム名（作成）" required>
+<button type="submit">チームを作成</button>
 </form>
 <form action="/classes/join" method="post">
-<input name="join_code" placeholder="参加コード（例: AB12CD34）" required>
-<button type="submit">クラスに参加</button>
+<input name="join_code" placeholder="参加コード（例：AB12CD34）" required>
+<button type="submit">チームに参加</button>
 </form>
 {% if classes %}
 <div class="meta">
 {% for c in classes %}
-<div><span class="badge">{{c.role}}</span>{{c.name}} {% if c.school_name %}({{c.school_name}}){% endif %} / 参加コード: {{c.join_code}}{% if c.can_delete %}<form action="/classes/delete/{{c.id}}" method="post" style="display:inline-block;margin-left:8px;"><button type="submit" class="delete-link-btn" onclick="return confirm('このチームを削除します。よろしいですか？')">チームの削除</button></form>{% endif %}</div>
+<div>
+<span class="badge">{{c.role}}</span>{{c.name}}
+{% if c.is_creator %}
+ / 参加コード: {{c.join_code}}
+<form action="/classes/delete/{{c.id}}" method="post" style="display:inline-block;margin-left:8px;">
+<button type="submit" class="delete-link-btn" onclick="return confirm('このチームを削除します。よろしいですか？')">チームの削除</button>
+</form>
+{% endif %}
+<form action="/classes/leave/{{c.id}}" method="post" style="display:inline-block;">
+<button type="submit" class="leave-btn" onclick="return confirm('このチームから退出します。よろしいですか？')">チームから退出</button>
+</form>
+</div>
 {% endfor %}
 </div>
 {% endif %}

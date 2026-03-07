@@ -425,7 +425,9 @@ def load_dashboard_data(user_id):
             "join_code": row[3],
             "school_id": row[4],
             "school_name": row[5],
+            "is_creator": row[6] == user_id,
             "can_delete": row[6] == user_id,
+            "can_leave": True,
         }
         for row in memberships
     ]
@@ -577,28 +579,35 @@ def create_class():
         return redirect("/")
 
     name = (request.form.get("name") or "").strip()
-    school_id = request.form.get("school_id")
     if not name:
         return redirect("/")
 
-    try:
-        school_id_val = int(school_id) if school_id else None
-    except ValueError:
-        school_id_val = None
+    school_id_val = None
 
     try:
         with get_conn() as conn:
             with conn.cursor() as c:
-                join_code = gen_join_code()
-                c.execute(
-                    """
-                    INSERT INTO classes(school_id, name, join_code, created_by)
-                    VALUES(%s, %s, %s, %s)
-                    RETURNING id
-                    """,
-                    (school_id_val, name, join_code, user_id),
-                )
-                class_id = c.fetchone()[0]
+                class_id = None
+                for _ in range(10):
+                    join_code = gen_join_code()
+                    try:
+                        c.execute(
+                            """
+                            INSERT INTO classes(school_id, name, join_code, created_by)
+                            VALUES(%s, %s, %s, %s)
+                            RETURNING id
+                            """,
+                            (school_id_val, name, join_code, user_id),
+                        )
+                        class_id = c.fetchone()[0]
+                        break
+                    except psycopg2.errors.UniqueViolation:
+                        conn.rollback()
+                        continue
+
+                if class_id is None:
+                    raise RuntimeError("Failed to allocate unique join code")
+
                 c.execute(
                     """
                     INSERT INTO class_members(class_id, user_id, role)
@@ -643,6 +652,58 @@ def join_class():
     return redirect("/")
 
 
+
+
+@app.route("/classes/leave/<int:class_id>", methods=["POST"])
+def leave_class(class_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect("/")
+
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as c:
+                c.execute("SELECT created_by FROM classes WHERE id=%s", (class_id,))
+                class_row = c.fetchone()
+                if not class_row:
+                    return redirect("/")
+
+                c.execute(
+                    "SELECT user_id FROM class_members WHERE class_id=%s AND user_id=%s",
+                    (class_id, user_id),
+                )
+                if not c.fetchone():
+                    return redirect("/")
+
+                if class_row[0] == user_id:
+                    c.execute(
+                        """
+                        SELECT user_id
+                        FROM class_members
+                        WHERE class_id=%s AND user_id<>%s
+                        ORDER BY id
+                        LIMIT 1
+                        """,
+                        (class_id, user_id),
+                    )
+                    successor = c.fetchone()
+                    if successor:
+                        c.execute(
+                            "UPDATE classes SET created_by=%s WHERE id=%s",
+                            (successor[0], class_id),
+                        )
+                    else:
+                        c.execute("DELETE FROM classes WHERE id=%s", (class_id,))
+                        return redirect("/")
+
+                c.execute(
+                    "DELETE FROM class_members WHERE class_id=%s AND user_id=%s",
+                    (class_id, user_id),
+                )
+    except Exception:
+        app.logger.exception("Failed to leave class")
+
+    return redirect("/")
 
 @app.route("/classes/delete/<int:class_id>", methods=["POST"])
 def delete_class(class_id):
