@@ -219,7 +219,7 @@ def send_deadline_reminders():
                     AND u.notify_enabled = 1
                     AND u.email IS NOT NULL
                     AND u.email <> ''
-                    AND t.deadline = CURRENT_DATE + COALESCE(u.notify_before_days, 1)
+                    AND (CASE WHEN t.deadline::text ~ '^\d{4}-\d{2}-\d{2}$' THEN t.deadline::date ELSE NULL END) = CURRENT_DATE + COALESCE(u.notify_before_days, 1)
                     AND NOT EXISTS (
                         SELECT 1
                         FROM task_notifications tn
@@ -251,7 +251,7 @@ def send_deadline_reminders():
                     AND u.notify_enabled = 1
                     AND u.email IS NOT NULL
                     AND u.email <> ''
-                    AND t.deadline = CURRENT_DATE + COALESCE(u.notify_before_days, 1)
+                    AND (CASE WHEN t.deadline::text ~ '^\d{4}-\d{2}-\d{2}$' THEN t.deadline::date ELSE NULL END) = CURRENT_DATE + COALESCE(u.notify_before_days, 1)
                     AND NOT EXISTS (
                         SELECT 1
                         FROM task_notifications tn
