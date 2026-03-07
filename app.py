@@ -219,7 +219,7 @@ def send_deadline_reminders():
                     AND u.notify_enabled = 1
                     AND u.email IS NOT NULL
                     AND u.email <> ''
-                    AND t.deadline = CURRENT_DATE + u.notify_before_days
+                    AND t.deadline = CURRENT_DATE + COALESCE(u.notify_before_days, 1)
                     AND NOT EXISTS (
                         SELECT 1
                         FROM task_notifications tn
@@ -251,7 +251,7 @@ def send_deadline_reminders():
                     AND u.notify_enabled = 1
                     AND u.email IS NOT NULL
                     AND u.email <> ''
-                    AND t.deadline = CURRENT_DATE + u.notify_before_days
+                    AND t.deadline = CURRENT_DATE + COALESCE(u.notify_before_days, 1)
                     AND NOT EXISTS (
                         SELECT 1
                         FROM task_notifications tn
@@ -312,11 +312,14 @@ def cron_send_reminders():
         return jsonify({"error": "forbidden"}), 403
 
     try:
+        if not ensure_db_initialized(force=True):
+            return jsonify({"status": "error", "message": "database initialization failed"}), 500
+
         sent_count, skipped_count = send_deadline_reminders()
         return jsonify({"status": "ok", "sent": sent_count, "skipped": skipped_count}), 200
-    except Exception:
+    except Exception as exc:
         app.logger.exception("Failed to send reminders")
-        return jsonify({"status": "error"}), 500
+        return jsonify({"status": "error", "message": str(exc)}), 500
 
 
 def load_dashboard_data(user_id):
