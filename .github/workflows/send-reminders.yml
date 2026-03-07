@@ -20,6 +20,23 @@ jobs:
             exit 1
           fi
 
-          curl -fsS -X POST "$REMINDER_ENDPOINT" \
-            -H "X-Cron-Token: $CRON_SECRET" \
-            -H "Content-Type: application/json"
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o response.txt -w "%{http_code}" -X POST "$REMINDER_ENDPOINT" \
+              -H "X-Cron-Token: $CRON_SECRET" \
+              -H "Content-Type: application/json")
+
+            echo "Attempt $attempt -> HTTP $code"
+            cat response.txt || true
+            echo
+
+            if [ "$code" = "200" ]; then
+              exit 0
+            fi
+
+            if [ "$code" = "500" ] && [ "$attempt" != "3" ]; then
+              sleep 15
+              continue
+            fi
+
+            exit 1
+          done
