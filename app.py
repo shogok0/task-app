@@ -459,7 +459,7 @@ def index():
 
 @app.route("/register", methods=["POST"])
 def register():
-    username = request.form.get("username")
+    username = (request.form.get("username") or "").strip()
     password = request.form.get("password")
     email = (request.form.get("email") or "").strip()
 
@@ -467,15 +467,31 @@ def register():
         return render_template("login.html", error="入力してください")
 
     try:
-        hashed = generate_password_hash(password)
         with get_conn() as conn:
             with conn.cursor() as c:
+                c.execute(
+                    "SELECT 1 FROM users WHERE username=%s",
+                    (username,),
+                )
+                if c.fetchone():
+                    return render_template("login.html", error="そのユーザー名は使われています")
+
+                hashed = generate_password_hash(password)
                 c.execute(
                     "INSERT INTO users(username,password,email) VALUES(%s,%s,%s)",
                     (username, hashed, email),
                 )
-    except psycopg2.errors.UniqueViolation:
-        return render_template("login.html", error="そのユーザー名は使われています")
+    except psycopg2.errors.UniqueViolation as exc:
+        constraint = ""
+        if getattr(exc, "diag", None) and getattr(exc.diag, "constraint_name", None):
+            constraint = exc.diag.constraint_name
+
+        if "username" in constraint:
+            return render_template("login.html", error="そのユーザー名は使われています")
+        if "email" in constraint:
+            return render_template("login.html", error="そのメールアドレスは使われています")
+
+        return render_template("login.html", error="登録情報が重複しています")
     except Exception:
         app.logger.exception("Failed to register user")
         return render_template("login.html", error="登録に失敗しました。少し待って再試行してください。")
@@ -485,7 +501,7 @@ def register():
 
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.form.get("username")
+    username = (request.form.get("username") or "").strip()
     password = request.form.get("password")
 
     if not username or not password:
