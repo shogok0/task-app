@@ -46,30 +46,24 @@ def init_db():
     try:
         with get_conn() as conn:
             with conn.cursor() as c:
-                c.execute(
+                statements = [
                     """
                     CREATE TABLE IF NOT EXISTS users(
                         id SERIAL PRIMARY KEY,
                         username TEXT UNIQUE,
                         password TEXT
                     )
-                    """
-                )
-                c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT")
-                c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS notify_enabled INTEGER DEFAULT 0")
-                c.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS notify_before_days INTEGER DEFAULT 1")
-
-                c.execute(
+                    """,
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notify_enabled INTEGER DEFAULT 0",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notify_before_days INTEGER DEFAULT 1",
                     """
                     CREATE TABLE IF NOT EXISTS schools(
                         id SERIAL PRIMARY KEY,
                         name TEXT NOT NULL,
                         created_by INTEGER REFERENCES users(id)
                     )
-                    """
-                )
-
-                c.execute(
+                    """,
                     """
                     CREATE TABLE IF NOT EXISTS classes(
                         id SERIAL PRIMARY KEY,
@@ -78,10 +72,7 @@ def init_db():
                         join_code TEXT UNIQUE,
                         created_by INTEGER REFERENCES users(id)
                     )
-                    """
-                )
-
-                c.execute(
+                    """,
                     """
                     CREATE TABLE IF NOT EXISTS class_members(
                         id SERIAL PRIMARY KEY,
@@ -90,10 +81,7 @@ def init_db():
                         role TEXT DEFAULT 'student',
                         UNIQUE(class_id, user_id)
                     )
-                    """
-                )
-
-                c.execute(
+                    """,
                     """
                     CREATE TABLE IF NOT EXISTS tasks(
                         id SERIAL PRIMARY KEY,
@@ -103,11 +91,8 @@ def init_db():
                         deadline DATE,
                         done INTEGER DEFAULT 0
                     )
-                    """
-                )
-                c.execute("ALTER TABLE tasks ADD COLUMN IF NOT EXISTS class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL")
-
-                c.execute(
+                    """,
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL",
                     """
                     CREATE TABLE IF NOT EXISTS task_notifications(
                         id SERIAL PRIMARY KEY,
@@ -117,8 +102,15 @@ def init_db():
                         sent_at TIMESTAMP DEFAULT NOW(),
                         UNIQUE(task_id, user_id, sent_for_date)
                     )
-                    """
-                )
+                    """,
+                ]
+
+                for stmt in statements:
+                    try:
+                        c.execute(stmt)
+                    except Exception:
+                        # Keep startup/cron alive even if a non-critical migration fails.
+                        app.logger.exception("Schema migration step failed")
         return True
     except Exception:
         app.logger.exception("Database initialization failed")
@@ -331,8 +323,9 @@ def cron_send_reminders():
         return jsonify({"error": "forbidden"}), 403
 
     try:
-        if not ensure_db_initialized(force=True):
-            return jsonify({"status": "error", "message": "database initialization failed"}), 500
+        init_ok = ensure_db_initialized(force=True)
+        if not init_ok:
+            app.logger.warning("Database initialization had failures, proceeding with reminder query")
 
         result = send_deadline_reminders()
         return jsonify({"status": "ok", **result}), 200
