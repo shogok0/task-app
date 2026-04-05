@@ -170,10 +170,12 @@ def send_email(to_email, subject, body):
     from_email = os.environ.get("SMTP_FROM", username)
     port = int(os.environ.get("SMTP_PORT", "587"))
     use_tls = os.environ.get("SMTP_USE_TLS", "1") == "1"
+    use_ssl = os.environ.get("SMTP_USE_SSL", "0") == "1" or port == 465
 
     if not host or not from_email:
-        app.logger.warning("SMTP not configured; skipping email send")
-        return False
+        msg = "SMTP not configured"
+        app.logger.warning(msg)
+        return False, msg
 
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -182,21 +184,29 @@ def send_email(to_email, subject, body):
     msg.set_content(body)
 
     try:
-        with smtplib.SMTP(host, port, timeout=15) as smtp:
-            if use_tls:
-                smtp.starttls()
-            if username and password:
-                smtp.login(username, password)
-            smtp.send_message(msg)
-        return True
-    except Exception:
+        if use_ssl:
+            with smtplib.SMTP_SSL(host, port, timeout=20) as smtp:
+                if username and password:
+                    smtp.login(username, password)
+                smtp.send_message(msg)
+        else:
+            with smtplib.SMTP(host, port, timeout=20) as smtp:
+                if use_tls:
+                    smtp.starttls()
+                if username and password:
+                    smtp.login(username, password)
+                smtp.send_message(msg)
+        return True, ""
+    except Exception as exc:
         app.logger.exception("Failed to send email")
-        return False
+        return False, str(exc)
 
 
 def send_deadline_reminders():
     sent_count = 0
     skipped_count = 0
+    candidate_count = 0
+    failures = []
 
     with get_conn() as conn:
         with conn.cursor() as c:
@@ -263,7 +273,10 @@ def send_deadline_reminders():
             )
             class_targets = c.fetchall()
 
-            for task_id, user_id, email, subject, task_text, deadline, class_name in personal_targets + class_targets:
+            targets = personal_targets + class_targets
+            candidate_count = len(targets)
+
+            for task_id, user_id, email, subject, task_text, deadline, class_name in targets:
                 scope = f"クラス: {class_name}\n" if class_name else ""
                 body = (
                     f"締切通知\n\n"
@@ -272,7 +285,7 @@ def send_deadline_reminders():
                     f"締切: {deadline}\n"
                     f"\n課題管理アプリで確認してください。"
                 )
-                ok = send_email(email, "[課題管理] 締切通知", body)
+                ok, err = send_email(email, "[課題管理] 締切通知", body)
                 if ok:
                     c.execute(
                         """
@@ -285,8 +298,14 @@ def send_deadline_reminders():
                     sent_count += 1
                 else:
                     skipped_count += 1
+                    failures.append({"task_id": task_id, "user_id": user_id, "email": email, "error": err[:180]})
 
-    return sent_count, skipped_count
+    return {
+        "sent": sent_count,
+        "skipped": skipped_count,
+        "candidates": candidate_count,
+        "failures": failures[:5],
+    }
 
 
 @app.before_request
@@ -315,8 +334,8 @@ def cron_send_reminders():
         if not ensure_db_initialized(force=True):
             return jsonify({"status": "error", "message": "database initialization failed"}), 500
 
-        sent_count, skipped_count = send_deadline_reminders()
-        return jsonify({"status": "ok", "sent": sent_count, "skipped": skipped_count}), 200
+        result = send_deadline_reminders()
+        return jsonify({"status": "ok", **result}), 200
     except Exception as exc:
         app.logger.exception("Failed to send reminders")
         return jsonify({"status": "error", "message": str(exc)}), 500
