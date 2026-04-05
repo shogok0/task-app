@@ -3,6 +3,7 @@ import os
 import random
 import smtplib
 import string
+import time
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 
@@ -39,7 +40,18 @@ def get_conn():
     if "sslmode=" not in database_url:
         conn_kwargs["sslmode"] = os.environ.get("DB_SSLMODE", "require")
 
-    return psycopg2.connect(database_url, **conn_kwargs)
+    last_exc = None
+    for attempt in range(3):
+        try:
+            return psycopg2.connect(database_url, **conn_kwargs)
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+            else:
+                raise
+
+    raise last_exc
 
 
 def init_db():
