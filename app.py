@@ -334,16 +334,27 @@ def cron_send_reminders():
     if expected and token != expected:
         return jsonify({"error": "forbidden"}), 403
 
-    try:
-        init_ok = ensure_db_initialized(force=True)
-        if not init_ok:
-            app.logger.warning("Database initialization had failures, proceeding with reminder query")
+    last_exc = None
+    for attempt in range(1, 6):
+        try:
+            init_ok = ensure_db_initialized(force=True)
+            if not init_ok:
+                app.logger.warning("Database initialization had failures, proceeding with reminder query")
 
-        result = send_deadline_reminders()
-        return jsonify({"status": "ok", **result}), 200
-    except Exception as exc:
-        app.logger.exception("Failed to send reminders")
-        return jsonify({"status": "error", "message": str(exc)}), 500
+            result = send_deadline_reminders()
+            return jsonify({"status": "ok", "attempt": attempt, **result}), 200
+        except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
+            last_exc = exc
+            app.logger.warning("Reminder DB attempt %s failed: %s", attempt, str(exc))
+            if attempt < 5:
+                time.sleep(5 * attempt)
+                continue
+            break
+        except Exception as exc:
+            app.logger.exception("Failed to send reminders")
+            return jsonify({"status": "error", "message": str(exc), "attempt": attempt}), 500
+
+    return jsonify({"status": "error", "message": str(last_exc), "attempt": 5}), 500
 
 
 def load_dashboard_data(user_id):
