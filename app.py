@@ -505,7 +505,7 @@ def register():
         with get_conn() as conn:
             with conn.cursor() as c:
                 c.execute(
-                    "SELECT 1 FROM users WHERE username=%s",
+                    "SELECT 1 FROM users WHERE lower(btrim(username))=lower(%s)",
                     (username,),
                 )
                 if c.fetchone():
@@ -546,8 +546,15 @@ def login():
         with get_conn() as conn:
             with conn.cursor() as c:
                 c.execute(
-                    "SELECT id,password FROM users WHERE username=%s",
-                    (username,),
+                    """
+                    SELECT id,password
+                    FROM users
+                    WHERE username=%s
+                       OR btrim(username)=%s
+                       OR lower(btrim(username))=lower(%s)
+                    LIMIT 1
+                    """,
+                    (username, username, username),
                 )
                 user = c.fetchone()
     except Exception:
