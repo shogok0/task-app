@@ -29,6 +29,8 @@ app.permanent_session_lifetime = timedelta(days=30)
 DB_INIT_RETRY_SECONDS = 15
 _db_initialized = False
 _last_db_init_try = None
+DB_RETRY_ATTEMPTS = 5
+DB_RETRY_BASE_SECONDS = 2
 
 
 def get_conn():
@@ -41,13 +43,18 @@ def get_conn():
         conn_kwargs["sslmode"] = os.environ.get("DB_SSLMODE", "require")
 
     last_exc = None
-    for attempt in range(3):
+    conn_kwargs["keepalives"] = 1
+    conn_kwargs["keepalives_idle"] = 30
+    conn_kwargs["keepalives_interval"] = 10
+    conn_kwargs["keepalives_count"] = 5
+
+    for attempt in range(DB_RETRY_ATTEMPTS):
         try:
             return psycopg2.connect(database_url, **conn_kwargs)
         except (psycopg2.OperationalError, psycopg2.InterfaceError) as exc:
             last_exc = exc
-            if attempt < 2:
-                time.sleep(1.5 * (attempt + 1))
+            if attempt < DB_RETRY_ATTEMPTS - 1:
+                time.sleep(DB_RETRY_BASE_SECONDS * (attempt + 1))
             else:
                 raise
 
@@ -149,6 +156,23 @@ def ensure_db_initialized(force=False):
 def gen_join_code(length=8):
     chars = string.ascii_uppercase + string.digits
     return "".join(random.choice(chars) for _ in range(length))
+
+
+def normalize_username(value):
+    return (value or "").strip().lower()
+
+
+def has_column(cursor, table_name, column_name):
+    cursor.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name=%s AND column_name=%s
+        LIMIT 1
+        """,
+        (table_name, column_name),
+    )
+    return cursor.fetchone() is not None
 
 
 def can_manage_task(task_user_id, task_class_id, member_role, user_id):
@@ -504,18 +528,22 @@ def register():
     try:
         with get_conn() as conn:
             with conn.cursor() as c:
-                c.execute(
-                    "SELECT 1 FROM users WHERE lower(btrim(username))=lower(%s)",
-                    (username,),
-                )
-                if c.fetchone():
+                c.execute("SELECT username FROM users")
+                existing = [normalize_username(row[0]) for row in c.fetchall()]
+                if normalize_username(username) in existing:
                     return render_template("login.html", error="そのユーザー名は使われています")
 
                 hashed = generate_password_hash(password)
-                c.execute(
-                    "INSERT INTO users(username,password,email) VALUES(%s,%s,%s)",
-                    (username, hashed, email),
-                )
+                if has_column(c, "users", "email"):
+                    c.execute(
+                        "INSERT INTO users(username,password,email) VALUES(%s,%s,%s)",
+                        (username, hashed, email),
+                    )
+                else:
+                    c.execute(
+                        "INSERT INTO users(username,password) VALUES(%s,%s)",
+                        (username, hashed),
+                    )
     except psycopg2.errors.UniqueViolation as exc:
         constraint = ""
         if getattr(exc, "diag", None) and getattr(exc.diag, "constraint_name", None):
@@ -545,18 +573,13 @@ def login():
     try:
         with get_conn() as conn:
             with conn.cursor() as c:
-                c.execute(
-                    """
-                    SELECT id,password
-                    FROM users
-                    WHERE username=%s
-                       OR btrim(username)=%s
-                       OR lower(btrim(username))=lower(%s)
-                    LIMIT 1
-                    """,
-                    (username, username, username),
-                )
-                user = c.fetchone()
+                c.execute("SELECT id,username,password FROM users")
+                user = None
+                target = normalize_username(username)
+                for row in c.fetchall():
+                    if normalize_username(row[1]) == target:
+                        user = (row[0], row[2])
+                        break
     except Exception:
         app.logger.exception("Failed to login")
         return render_template("login.html", error="ログイン処理でエラーが発生しました。")
