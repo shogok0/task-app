@@ -525,41 +525,51 @@ def register():
     if not username or not password:
         return render_template("login.html", error="入力してください")
 
-    try:
-        with get_conn() as conn:
-            with conn.cursor() as c:
-                c.execute("SELECT username FROM users")
-                existing = [normalize_username(row[0]) for row in c.fetchall()]
-                if normalize_username(username) in existing:
-                    return render_template("login.html", error="そのユーザー名は使われています")
-
-                hashed = generate_password_hash(password)
-                if has_column(c, "users", "email"):
+    for attempt in range(3):
+        try:
+            with get_conn() as conn:
+                with conn.cursor() as c:
                     c.execute(
-                        "INSERT INTO users(username,password,email) VALUES(%s,%s,%s)",
-                        (username, hashed, email),
+                        "SELECT 1 FROM users WHERE lower(btrim(username))=lower(%s) LIMIT 1",
+                        (username,),
                     )
-                else:
-                    c.execute(
-                        "INSERT INTO users(username,password) VALUES(%s,%s)",
-                        (username, hashed),
-                    )
-    except psycopg2.errors.UniqueViolation as exc:
-        constraint = ""
-        if getattr(exc, "diag", None) and getattr(exc.diag, "constraint_name", None):
-            constraint = exc.diag.constraint_name
+                    if c.fetchone():
+                        return render_template("login.html", error="そのユーザー名は使われています")
 
-        if "username" in constraint:
-            return render_template("login.html", error="そのユーザー名は使われています")
-        if "email" in constraint:
-            return render_template("login.html", error="そのメールアドレスは使われています")
+                    hashed = generate_password_hash(password)
+                    if has_column(c, "users", "email"):
+                        c.execute(
+                            "INSERT INTO users(username,password,email) VALUES(%s,%s,%s)",
+                            (username, hashed, email),
+                        )
+                    else:
+                        c.execute(
+                            "INSERT INTO users(username,password) VALUES(%s,%s)",
+                            (username, hashed),
+                        )
+            return redirect("/")
+        except psycopg2.errors.UniqueViolation as exc:
+            constraint = ""
+            if getattr(exc, "diag", None) and getattr(exc.diag, "constraint_name", None):
+                constraint = exc.diag.constraint_name
 
-        return render_template("login.html", error="登録情報が重複しています")
-    except Exception:
-        app.logger.exception("Failed to register user")
-        return render_template("login.html", error="登録に失敗しました。少し待って再試行してください。")
+            if "username" in constraint:
+                return render_template("login.html", error="そのユーザー名は使われています")
+            if "email" in constraint:
+                return render_template("login.html", error="そのメールアドレスは使われています")
 
-    return redirect("/")
+            return render_template("login.html", error="登録情報が重複しています")
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            if attempt < 2:
+                time.sleep(2 * (attempt + 1))
+                continue
+            app.logger.exception("Failed to register user after retries")
+            return render_template("login.html", error="登録に失敗しました。少し待って再試行してください。")
+        except Exception:
+            app.logger.exception("Failed to register user")
+            return render_template("login.html", error="登録に失敗しました。少し待って再試行してください。")
+
+    return render_template("login.html", error="登録に失敗しました。少し待って再試行してください。")
 
 
 @app.route("/login", methods=["POST"])
@@ -570,19 +580,31 @@ def login():
     if not username or not password:
         return render_template("login.html", error="ユーザー名とパスワードを入力してください")
 
-    try:
-        with get_conn() as conn:
-            with conn.cursor() as c:
-                c.execute("SELECT id,username,password FROM users")
-                user = None
-                target = normalize_username(username)
-                for row in c.fetchall():
-                    if normalize_username(row[1]) == target:
-                        user = (row[0], row[2])
-                        break
-    except Exception:
-        app.logger.exception("Failed to login")
-        return render_template("login.html", error="ログイン処理でエラーが発生しました。")
+    user = None
+    for attempt in range(3):
+        try:
+            with get_conn() as conn:
+                with conn.cursor() as c:
+                    c.execute(
+                        """
+                        SELECT id,password
+                        FROM users
+                        WHERE lower(btrim(username))=lower(%s)
+                        LIMIT 1
+                        """,
+                        (username,),
+                    )
+                    user = c.fetchone()
+            break
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            if attempt < 2:
+                time.sleep(2 * (attempt + 1))
+                continue
+            app.logger.exception("Failed to login after retries")
+            return render_template("login.html", error="ログイン処理でエラーが発生しました。")
+        except Exception:
+            app.logger.exception("Failed to login")
+            return render_template("login.html", error="ログイン処理でエラーが発生しました。")
 
     if user and check_password_hash(user[1], password):
         session.permanent = True
