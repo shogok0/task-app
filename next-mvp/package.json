@@ -1,0 +1,42 @@
+{
+  "name": "next-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "tsx scripts/run-tests.ts",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "db:push": "tsx scripts/init-db.ts",
+    "db:seed": "tsx prisma/seed.ts",
+    "prisma:generate": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.16.2",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "12.9.0",
+    "jose": "^6.2.2",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "prisma": "^6.16.2",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.1.4"
+  }
+}
