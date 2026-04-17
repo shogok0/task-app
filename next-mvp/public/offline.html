@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>オフライン | 課題管理</title>
+  <style>
+    html,body{margin:0;padding:0;min-height:100vh;background:#1C1C1E;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;-webkit-font-smoothing:antialiased}
+    main{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+    .icon{width:96px;height:96px;border-radius:28px;background:#2C2C2E;display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:48px}
+    h1{font-size:22px;margin:0 0 8px;font-weight:700}
+    p{font-size:15px;color:rgba(235,235,245,0.6);margin:0 0 24px;max-width:320px;line-height:1.5}
+    button{appearance:none;border:0;background:#0A84FF;color:#fff;font-size:16px;font-weight:600;padding:12px 20px;border-radius:12px;cursor:pointer;min-height:44px}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon">📡</div>
+    <h1>オフラインです</h1>
+    <p>インターネット接続を確認して、もう一度お試しください。作成済みの課題データは接続復帰後に同期されます。</p>
+    <button onclick="location.reload()">再読み込み</button>
+  </main>
+</body>
+</html>

@@ -6,11 +6,11 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     environment: "node",
     fileParallelism: false,
-    setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
-      include: ["src/lib/services/**/*.ts", "src/lib/task-utils.ts"],
+      include: ["src/lib/**/*.ts"],
+      exclude: ["src/lib/supabase/**", "src/lib/db/**", "src/lib/email/**"],
     },
   },
   resolve: {
