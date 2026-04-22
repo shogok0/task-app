@@ -15,6 +15,7 @@ import type {
   TaskStatus,
   TaskSubmissionRow,
   GoogleCalendarConnection,
+  IcalFeedToken,
 } from "./types";
 
 type Row = Record<string, unknown>;
@@ -120,6 +121,17 @@ export function mapGoogleCalendarConnection(row: Row): GoogleCalendarConnection 
     googleEmail: strOrNull(row, "google_email"),
     calendarId: str(row, "calendar_id") || "primary",
     lastSyncedAt: strOrNull(row, "last_synced_at"),
+    createdAt: str(row, "created_at"),
+    updatedAt: str(row, "updated_at"),
+  };
+}
+
+export function mapIcalFeedToken(row: Row): IcalFeedToken {
+  return {
+    userId: str(row, "user_id"),
+    token: str(row, "token"),
+    enabled: bool(row, "enabled"),
+    lastAccessedAt: strOrNull(row, "last_accessed_at"),
     createdAt: str(row, "created_at"),
     updatedAt: str(row, "updated_at"),
   };

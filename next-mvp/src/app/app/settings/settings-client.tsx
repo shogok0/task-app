@@ -11,6 +11,7 @@ import {
   BellRing,
   BellDot,
   Calendar,
+  Copy,
   Link2,
   RefreshCw,
   Unplug,
@@ -37,6 +38,8 @@ import {
   updateNotificationSettingsAction,
   syncGoogleCalendarNowAction,
   disconnectGoogleCalendarAction,
+  ensureIcalFeedUrlAction,
+  regenerateIcalFeedUrlAction,
 } from "@/app/app/_actions/settings";
 import {
   createGroupAction,
@@ -50,6 +53,7 @@ type Props = {
   groups: GroupWithMeta[];
   notif: NotificationSetting | null;
   googleCalendarConnection: GoogleCalendarConnection | null;
+  icalFeedUrl: string | null;
   authEmail: string | null;
 };
 
@@ -62,6 +66,7 @@ export function SettingsClient({
   groups,
   notif,
   googleCalendarConnection,
+  icalFeedUrl,
   authEmail,
 }: Props): React.JSX.Element {
   const { show } = useToast();
@@ -75,6 +80,9 @@ export function SettingsClient({
   );
   const [googleCalendarState, setGoogleCalendarState] =
     React.useState<GoogleCalendarConnection | null>(googleCalendarConnection);
+  const [icalFeedUrlState, setIcalFeedUrlState] = React.useState<string | null>(
+    icalFeedUrl,
+  );
 
   const [profileSheetOpen, setProfileSheetOpen] = React.useState(false);
   const [emailSheetOpen, setEmailSheetOpen] = React.useState(false);
@@ -156,6 +164,56 @@ export function SettingsClient({
         });
       }
     });
+  };
+
+  const handleEnsureIcalFeedUrl = () => {
+    startTransition(async () => {
+      const res = await ensureIcalFeedUrlAction();
+      if (res.ok) {
+        setIcalFeedUrlState(res.data.url);
+        show({ variant: "success", title: "iCalフィードURLを作成しました" });
+      } else {
+        show({
+          variant: "error",
+          title: "iCalフィードURLの作成に失敗しました",
+          description: res.error,
+        });
+      }
+    });
+  };
+
+  const handleRegenerateIcalFeedUrl = () => {
+    startTransition(async () => {
+      const res = await regenerateIcalFeedUrlAction();
+      if (res.ok) {
+        setIcalFeedUrlState(res.data.url);
+        show({
+          variant: "success",
+          title: "iCalフィードURLを再生成しました",
+          description: "以前のURLは無効になります",
+        });
+      } else {
+        show({
+          variant: "error",
+          title: "iCalフィードURLの再生成に失敗しました",
+          description: res.error,
+        });
+      }
+    });
+  };
+
+  const handleCopyIcalFeedUrl = async () => {
+    if (!icalFeedUrlState) return;
+    try {
+      await navigator.clipboard.writeText(icalFeedUrlState);
+      show({ variant: "success", title: "iCalフィードURLをコピーしました" });
+    } catch {
+      show({
+        variant: "error",
+        title: "コピーに失敗しました",
+        description: "ブラウザのクリップボード権限を確認してください",
+      });
+    }
   };
 
   const handleTogglePush = async (next: boolean) => {
@@ -249,7 +307,7 @@ export function SettingsClient({
           </GroupedList>
         </section>
 
-        {/* Section 2: 通知 */}
+        {/* Section 2: Google連携 */}
         <section>
           <SectionHeader>Google連携</SectionHeader>
           <GroupedList>
@@ -311,7 +369,47 @@ export function SettingsClient({
           </GroupedList>
         </section>
 
-        {/* Section 3: 通知 */}
+        {/* Section 3: TimeTree (iCal) */}
+        <section>
+          <SectionHeader>TimeTree連携（iCal）</SectionHeader>
+          <GroupedList>
+            <div className="flex flex-col gap-2 px-4 py-3">
+              <p className="text-ios-subhead text-[color:var(--color-text-secondary)]">
+                TimeTreeでは外部カレンダーとしてこのURLを購読してください。
+              </p>
+              <p className="break-all rounded-[var(--radius-md)] bg-[color:var(--color-surface)] p-3 text-ios-caption1 text-[color:var(--color-text-secondary)]">
+                {icalFeedUrlState ?? "未作成"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-3">
+              {!icalFeedUrlState ? (
+                <Button variant="secondary" size="sm" onClick={handleEnsureIcalFeedUrl}>
+                  URLを作成
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCopyIcalFeedUrl}
+                    leftIcon={<Copy size={14} aria-hidden="true" />}
+                  >
+                    URLをコピー
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRegenerateIcalFeedUrl}
+                  >
+                    URLを再生成
+                  </Button>
+                </>
+              )}
+            </div>
+          </GroupedList>
+        </section>
+
+        {/* Section 4: 通知 */}
         <section>
           <SectionHeader>通知</SectionHeader>
           <GroupedList>
@@ -397,7 +495,7 @@ export function SettingsClient({
           </GroupedList>
         </section>
 
-        {/* Section 4: グループ */}
+        {/* Section 5: グループ */}
         <section>
           <div className="flex items-center justify-between mb-2 px-4">
             <h2 className="text-ios-footnote text-[color:var(--color-text-secondary)] uppercase tracking-wider">
@@ -482,7 +580,7 @@ export function SettingsClient({
           )}
         </section>
 
-        {/* Section 5: アプリ情報 */}
+        {/* Section 6: アプリ情報 */}
         <section>
           <SectionHeader>アプリ情報</SectionHeader>
           <GroupedList>

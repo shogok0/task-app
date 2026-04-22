@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import {
   getCurrentUserId,
@@ -9,6 +10,10 @@ import {
 import { updateMyProfile } from "@/lib/db/repositories/profiles";
 import { updateMyNotificationSettings } from "@/lib/db/repositories/notifications";
 import { deleteMyGoogleCalendarConnection } from "@/lib/db/repositories/google-calendar";
+import {
+  ensureMyIcalFeedToken,
+  regenerateMyIcalFeedToken,
+} from "@/lib/db/repositories/ical-feeds";
 import { syncGoogleCalendarForUser, type GoogleCalendarSyncResult } from "@/lib/google-calendar/sync-service";
 import { AppError } from "@/lib/errors";
 import type { Profile, NotificationSetting } from "@/lib/db/types";
@@ -109,5 +114,39 @@ export async function disconnectGoogleCalendarAction(): Promise<ActionResult<voi
     await deleteMyGoogleCalendarConnection(supabase, userId);
 
     revalidatePath("/app/settings");
+  });
+}
+
+async function resolveAppOrigin(): Promise<string> {
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto");
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (proto && host) return `${proto}://${host}`;
+  return process.env.APP_URL ?? "http://localhost:3000";
+}
+
+export async function ensureIcalFeedUrlAction(): Promise<ActionResult<{ url: string }>> {
+  return handle(async () => {
+    const userId = await getCurrentUserId();
+    requireUserIdOrThrow(userId);
+    const supabase = await createSupabaseServerClient();
+
+    const feed = await ensureMyIcalFeedToken(supabase, userId);
+    const origin = await resolveAppOrigin();
+    revalidatePath("/app/settings");
+    return { url: `${origin}/api/ical/${feed.token}` };
+  });
+}
+
+export async function regenerateIcalFeedUrlAction(): Promise<ActionResult<{ url: string }>> {
+  return handle(async () => {
+    const userId = await getCurrentUserId();
+    requireUserIdOrThrow(userId);
+    const supabase = await createSupabaseServerClient();
+
+    const feed = await regenerateMyIcalFeedToken(supabase, userId);
+    const origin = await resolveAppOrigin();
+    revalidatePath("/app/settings");
+    return { url: `${origin}/api/ical/${feed.token}` };
   });
 }

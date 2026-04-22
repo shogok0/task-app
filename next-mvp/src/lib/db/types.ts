@@ -85,3 +85,12 @@ export type GoogleCalendarConnection = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type IcalFeedToken = {
+  userId: string;
+  token: string;
+  enabled: boolean;
+  lastAccessedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

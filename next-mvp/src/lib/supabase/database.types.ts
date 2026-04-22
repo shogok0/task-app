@@ -33,6 +33,7 @@ export type Database = {
       notification_deliveries: LooseTable;
       google_calendar_connections: LooseTable;
       google_calendar_task_syncs: LooseTable;
+      ical_feed_tokens: LooseTable;
     };
     Views: Record<string, never>;
     Functions: {
