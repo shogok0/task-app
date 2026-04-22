@@ -19,6 +19,17 @@ export default function LoginPage() {
           アカウントにサインインします
         </p>
       </div>
+      <Link href="/auth/google?next=%2Fapp%2Ftoday" className="block">
+        <Button type="button" fullWidth size="lg" variant="secondary">
+          Googleでログイン
+        </Button>
+      </Link>
+      <div className="relative">
+        <div className="h-px bg-[color:var(--color-separator)]" />
+        <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 bg-[color:var(--color-bg)] px-2 text-ios-caption1 text-[color:var(--color-text-secondary)]">
+          またはメールでログイン
+        </span>
+      </div>
       <form action={action} className="space-y-4">
         <TextField
           label="メールアドレス"

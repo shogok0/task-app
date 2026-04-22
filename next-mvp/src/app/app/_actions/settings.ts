@@ -8,6 +8,8 @@ import {
 } from "@/lib/supabase/server";
 import { updateMyProfile } from "@/lib/db/repositories/profiles";
 import { updateMyNotificationSettings } from "@/lib/db/repositories/notifications";
+import { deleteMyGoogleCalendarConnection } from "@/lib/db/repositories/google-calendar";
+import { syncGoogleCalendarForUser, type GoogleCalendarSyncResult } from "@/lib/google-calendar/sync-service";
 import { AppError } from "@/lib/errors";
 import type { Profile, NotificationSetting } from "@/lib/db/types";
 
@@ -77,5 +79,35 @@ export async function updateNotificationSettingsAction(
     const setting = await updateMyNotificationSettings(supabase, userId, parsed);
     revalidatePath("/app/settings");
     return setting;
+  });
+}
+
+export async function syncGoogleCalendarNowAction(): Promise<ActionResult<GoogleCalendarSyncResult>> {
+  return handle(async () => {
+    const userId = await getCurrentUserId();
+    requireUserIdOrThrow(userId);
+    const supabase = await createSupabaseServerClient();
+
+    const result = await syncGoogleCalendarForUser({
+      supabase,
+      userId,
+      appUrl: process.env.APP_URL ?? null,
+    });
+
+    revalidatePath("/app/settings");
+    revalidatePath("/app/today");
+    revalidatePath("/app/upcoming");
+    return result;
+  });
+}
+
+export async function disconnectGoogleCalendarAction(): Promise<ActionResult<void>> {
+  return handle(async () => {
+    const userId = await getCurrentUserId();
+    requireUserIdOrThrow(userId);
+    const supabase = await createSupabaseServerClient();
+    await deleteMyGoogleCalendarConnection(supabase, userId);
+
+    revalidatePath("/app/settings");
   });
 }

@@ -194,6 +194,24 @@ export async function getTaskById(
   return mapTaskWithSubmission(data as Row, userId);
 }
 
+export async function listOpenTasksForCalendarSync(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<TaskWithMySubmission[]> {
+  const { data, error } = await supabase
+    .from("tasks")
+    .select(TASK_LIST_SELECT)
+    .eq("status", "OPEN")
+    .is("deleted_at", null)
+    .order("deadline_at", { ascending: true });
+
+  if (error) fail(error, "Google同期対象タスクの取得に失敗しました");
+
+  return (data ?? [])
+    .map((row) => mapTaskWithSubmission(row as Row, userId))
+    .filter((task) => task.mySubmission?.status !== "SUBMITTED");
+}
+
 // -----------------------------------------------------------------------------
 // Mutations
 // -----------------------------------------------------------------------------

@@ -11,6 +11,9 @@ import {
   BellRing,
   BellDot,
   Calendar,
+  Link2,
+  RefreshCw,
+  Unplug,
   Users,
   Info,
   FileText,
@@ -27,10 +30,13 @@ import type {
   NotificationSetting,
   MembershipRole,
   Group,
+  GoogleCalendarConnection,
 } from "@/lib/db/types";
 import {
   updateProfileAction,
   updateNotificationSettingsAction,
+  syncGoogleCalendarNowAction,
+  disconnectGoogleCalendarAction,
 } from "@/app/app/_actions/settings";
 import {
   createGroupAction,
@@ -43,6 +49,7 @@ type Props = {
   profile: Profile | null;
   groups: GroupWithMeta[];
   notif: NotificationSetting | null;
+  googleCalendarConnection: GoogleCalendarConnection | null;
   authEmail: string | null;
 };
 
@@ -54,6 +61,7 @@ export function SettingsClient({
   profile,
   groups,
   notif,
+  googleCalendarConnection,
   authEmail,
 }: Props): React.JSX.Element {
   const { show } = useToast();
@@ -65,6 +73,8 @@ export function SettingsClient({
   const [notifState, setNotifState] = React.useState<NotificationSetting | null>(
     notif,
   );
+  const [googleCalendarState, setGoogleCalendarState] =
+    React.useState<GoogleCalendarConnection | null>(googleCalendarConnection);
 
   const [profileSheetOpen, setProfileSheetOpen] = React.useState(false);
   const [emailSheetOpen, setEmailSheetOpen] = React.useState(false);
@@ -110,6 +120,44 @@ export function SettingsClient({
     });
   };
 
+  const handleSyncGoogleCalendar = () => {
+    startTransition(async () => {
+      const res = await syncGoogleCalendarNowAction();
+      if (res.ok) {
+        setGoogleCalendarState((prev) =>
+          prev ? { ...prev, lastSyncedAt: new Date().toISOString() } : prev,
+        );
+        show({
+          variant: "success",
+          title: "Googleカレンダーを同期しました",
+          description: `作成 ${res.data.created}件 / 更新 ${res.data.updated}件 / 削除 ${res.data.deleted}件`,
+        });
+      } else {
+        show({
+          variant: "error",
+          title: "Googleカレンダー同期に失敗しました",
+          description: res.error,
+        });
+      }
+    });
+  };
+
+  const handleDisconnectGoogleCalendar = () => {
+    startTransition(async () => {
+      const res = await disconnectGoogleCalendarAction();
+      if (res.ok) {
+        setGoogleCalendarState(null);
+        show({ variant: "success", title: "Google連携を解除しました" });
+      } else {
+        show({
+          variant: "error",
+          title: "Google連携の解除に失敗しました",
+          description: res.error,
+        });
+      }
+    });
+  };
+
   const handleTogglePush = async (next: boolean) => {
     if (next && typeof window !== "undefined" && "Notification" in window) {
       try {
@@ -133,6 +181,10 @@ export function SettingsClient({
   const pushEnabled = notifState?.pushEnabled ?? false;
   const remindBeforeDays = notifState?.remindBeforeDays ?? 1;
   const notifEmail = notifState?.emailAddress ?? null;
+  const googleConnected = !!googleCalendarState;
+  const googleLastSyncedLabel = googleCalendarState?.lastSyncedAt
+    ? new Date(googleCalendarState.lastSyncedAt).toLocaleString("ja-JP")
+    : "未同期";
 
   return (
     <div className="min-h-dvh bg-[color:var(--color-surface)] pt-safe">
@@ -198,6 +250,68 @@ export function SettingsClient({
         </section>
 
         {/* Section 2: 通知 */}
+        <section>
+          <SectionHeader>Google連携</SectionHeader>
+          <GroupedList>
+            <Row
+              leftIcon={<Link2 size={18} aria-hidden="true" />}
+              label="Googleアカウント"
+              right={
+                <span className="text-ios-body text-[color:var(--color-text-secondary)] truncate max-w-[180px]">
+                  {googleCalendarState?.googleEmail ?? "(未連携)"}
+                </span>
+              }
+            />
+            <Row
+              leftIcon={<Calendar size={18} aria-hidden="true" />}
+              label="最終同期"
+              right={
+                <span className="text-ios-body text-[color:var(--color-text-secondary)] truncate max-w-[180px]">
+                  {googleLastSyncedLabel}
+                </span>
+              }
+            />
+            {!googleConnected ? (
+              <Link
+                href="/auth/google?next=%2Fapp%2Fsettings&calendar=1"
+                className="flex items-center justify-between px-4 py-3 min-h-[48px] tap-target active:bg-[color:var(--color-separator)]/30"
+              >
+                <span className="flex items-center gap-3">
+                  <Link2 size={18} aria-hidden="true" />
+                  <span className="text-ios-body text-[color:var(--color-text-primary)]">
+                    Googleカレンダーを連携
+                  </span>
+                </span>
+                <ChevronRight
+                  size={18}
+                  className="text-[color:var(--color-text-tertiary)]"
+                  aria-hidden="true"
+                />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-3">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleSyncGoogleCalendar}
+                  leftIcon={<RefreshCw size={14} aria-hidden="true" />}
+                >
+                  今すぐ同期
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDisconnectGoogleCalendar}
+                  leftIcon={<Unplug size={14} aria-hidden="true" />}
+                >
+                  連携解除
+                </Button>
+              </div>
+            )}
+          </GroupedList>
+        </section>
+
+        {/* Section 3: 通知 */}
         <section>
           <SectionHeader>通知</SectionHeader>
           <GroupedList>
@@ -283,7 +397,7 @@ export function SettingsClient({
           </GroupedList>
         </section>
 
-        {/* Section 3: グループ */}
+        {/* Section 4: グループ */}
         <section>
           <div className="flex items-center justify-between mb-2 px-4">
             <h2 className="text-ios-footnote text-[color:var(--color-text-secondary)] uppercase tracking-wider">
@@ -342,7 +456,7 @@ export function SettingsClient({
                     <div className="flex items-center gap-2 shrink-0">
                       {g.myRole === "ADMIN" ? (
                         <span className="inline-flex items-center rounded-full bg-[color:var(--color-accent)]/15 text-[color:var(--color-accent)] px-2 py-0.5 text-ios-caption1">
-                          教師/管理者
+                          管理者
                         </span>
                       ) : null}
                       <ChevronRight
@@ -368,7 +482,7 @@ export function SettingsClient({
           )}
         </section>
 
-        {/* Section 4: アプリ情報 */}
+        {/* Section 5: アプリ情報 */}
         <section>
           <SectionHeader>アプリ情報</SectionHeader>
           <GroupedList>
@@ -397,12 +511,14 @@ export function SettingsClient({
 
       {/* -------------- Bottom Sheets -------------- */}
       <DisplayNameSheet
+        key={`display-name-${profileSheetOpen ? displayName : "closed"}`}
         open={profileSheetOpen}
         onOpenChange={setProfileSheetOpen}
         initial={displayName}
         onSave={handleSaveDisplayName}
       />
       <EmailAddressSheet
+        key={`email-address-${emailSheetOpen ? notifEmail ?? "" : "closed"}`}
         open={emailSheetOpen}
         onOpenChange={setEmailSheetOpen}
         initial={notifEmail ?? ""}
@@ -412,10 +528,12 @@ export function SettingsClient({
         }}
       />
       <CreateGroupSheet
+        key={`create-group-${createGroupSheetOpen ? "open" : "closed"}`}
         open={createGroupSheetOpen}
         onOpenChange={setCreateGroupSheetOpen}
       />
       <JoinGroupSheet
+        key={`join-group-${joinGroupSheetOpen ? "open" : "closed"}`}
         open={joinGroupSheetOpen}
         onOpenChange={setJoinGroupSheetOpen}
       />
@@ -532,10 +650,6 @@ function DisplayNameSheet({
   const [value, setValue] = React.useState(initial);
   const [pending, startTransition] = React.useTransition();
 
-  React.useEffect(() => {
-    if (open) setValue(initial);
-  }, [open, initial]);
-
   return (
     <BottomSheet
       open={open}
@@ -586,10 +700,6 @@ function EmailAddressSheet({
 }): React.JSX.Element {
   const [value, setValue] = React.useState(initial);
 
-  React.useEffect(() => {
-    if (open) setValue(initial);
-  }, [open, initial]);
-
   return (
     <BottomSheet
       open={open}
@@ -630,10 +740,6 @@ function CreateGroupSheet({
   const { show } = useToast();
   const [name, setName] = React.useState("");
   const [pending, startTransition] = React.useTransition();
-
-  React.useEffect(() => {
-    if (open) setName("");
-  }, [open]);
 
   const onSubmit = () => {
     const trimmed = name.trim();
@@ -705,10 +811,6 @@ function JoinGroupSheet({
   const { show } = useToast();
   const [code, setCode] = React.useState("");
   const [pending, startTransition] = React.useTransition();
-
-  React.useEffect(() => {
-    if (open) setCode("");
-  }, [open]);
 
   const normalized = code.trim().toUpperCase();
   const valid = normalized.length >= 6 && normalized.length <= 16;

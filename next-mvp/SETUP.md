@@ -77,6 +77,21 @@ curl -X POST http://localhost:3000/api/cron/deadline-reminders \
   -H "x-cron-secret: $(grep CRON_SECRET .env.local | cut -d= -f2)"
 ```
 
+## 4-1. Googleログイン & カレンダー同期 (任意)
+
+1. Supabase Dashboard → Authentication → Providers → Google を有効化
+2. Google Cloud Console で OAuth 同意画面と Web クライアントを作成
+3. Supabase の Google Provider に Client ID / Secret を設定
+4. Redirect URL に `https://<your-app-domain>/auth/callback` を登録
+5. `.env.local` に以下を追加
+
+```bash
+GOOGLE_OAUTH_CLIENT_ID="..."
+GOOGLE_OAUTH_CLIENT_SECRET="..."
+```
+
+Googleカレンダー同期では `calendar.events` 権限を使用します。
+
 ## 5. よくあるトラブル
 
 ### `permission denied for table X`

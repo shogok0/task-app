@@ -14,6 +14,7 @@ import type {
   TaskScopeType,
   TaskStatus,
   TaskSubmissionRow,
+  GoogleCalendarConnection,
 } from "./types";
 
 type Row = Record<string, unknown>;
@@ -107,6 +108,18 @@ export function mapNotificationSetting(row: Row): NotificationSetting {
     emailAddress: strOrNull(row, "email_address"),
     remindBeforeDays: num(row, "remind_before_days"),
     pushEnabled: bool(row, "push_enabled"),
+    createdAt: str(row, "created_at"),
+    updatedAt: str(row, "updated_at"),
+  };
+}
+
+export function mapGoogleCalendarConnection(row: Row): GoogleCalendarConnection {
+  return {
+    userId: str(row, "user_id"),
+    provider: "google",
+    googleEmail: strOrNull(row, "google_email"),
+    calendarId: str(row, "calendar_id") || "primary",
+    lastSyncedAt: strOrNull(row, "last_synced_at"),
     createdAt: str(row, "created_at"),
     updatedAt: str(row, "updated_at"),
   };

@@ -75,3 +75,13 @@ export type NotificationSetting = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type GoogleCalendarConnection = {
+  userId: string;
+  provider: "google";
+  googleEmail: string | null;
+  calendarId: string;
+  lastSyncedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

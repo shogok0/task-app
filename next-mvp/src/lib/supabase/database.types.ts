@@ -31,6 +31,8 @@ export type Database = {
       task_submissions: LooseTable;
       notification_settings: LooseTable;
       notification_deliveries: LooseTable;
+      google_calendar_connections: LooseTable;
+      google_calendar_task_syncs: LooseTable;
     };
     Views: Record<string, never>;
     Functions: {

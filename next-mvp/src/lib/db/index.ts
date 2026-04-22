@@ -5,3 +5,4 @@ export * from "./repositories/tasks";
 export * from "./repositories/groups";
 export * from "./repositories/profiles";
 export * from "./repositories/notifications";
+export * from "./repositories/google-calendar";
