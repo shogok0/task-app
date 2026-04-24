@@ -141,6 +141,24 @@ export function SettingsClient({
           description: `作成 ${res.data.created}件 / 更新 ${res.data.updated}件 / 削除 ${res.data.deleted}件`,
         });
       } else {
+        if (res.code === "GOOGLE_RECONNECT_REQUIRED") {
+          setGoogleCalendarState(null);
+          show({
+            variant: "error",
+            title: "Google再連携が必要です",
+            description: "設定の「Googleカレンダーを連携」から再連携してください",
+          });
+          return;
+        }
+        if (res.code === "GOOGLE_OAUTH_CLIENT_INVALID") {
+          show({
+            variant: "error",
+            title: "Google連携設定エラー",
+            description:
+              "サーバー側のGoogle OAuth設定が無効です。しばらくしてから再試行してください",
+          });
+          return;
+        }
         show({
           variant: "error",
           title: "Googleカレンダー同期に失敗しました",

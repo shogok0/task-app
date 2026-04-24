@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { AppError } from "@/lib/errors";
 import {
+  deleteMyGoogleCalendarConnection,
   getMyGoogleCalendarSecretConnection,
   listMyGoogleCalendarTaskSyncMap,
   touchMyGoogleCalendarLastSyncedAt,
@@ -111,6 +112,20 @@ async function refreshGoogleAccessToken(params: {
     | null;
 
   if (!res.ok || !json?.access_token) {
+    if (json?.error === "invalid_grant") {
+      throw new AppError(
+        "Google連携の有効期限が切れました。再連携してください",
+        401,
+        "GOOGLE_RECONNECT_REQUIRED",
+      );
+    }
+    if (json?.error === "invalid_client") {
+      throw new AppError(
+        "Google OAuth設定が無効です。管理者設定を確認してください",
+        500,
+        "GOOGLE_OAUTH_CLIENT_INVALID",
+      );
+    }
     const detail =
       json?.error_description ?? json?.error ?? `HTTP_${res.status.toString()}`;
     throw new AppError(
@@ -221,9 +236,22 @@ async function withAutoRefresh<T>(params: {
 
   const tryRefresh = async () => {
     if (!params.refreshToken) {
-      throw new AppError("Google再連携が必要です。設定から連携し直してください", 401, "GOOGLE_RECONNECT_REQUIRED");
+      await deleteMyGoogleCalendarConnection(params.supabase, params.userId);
+      throw new AppError(
+        "Google再連携が必要です。設定から連携し直してください",
+        401,
+        "GOOGLE_RECONNECT_REQUIRED",
+      );
     }
-    const refreshed = await refreshGoogleAccessToken({ refreshToken: params.refreshToken });
+    let refreshed: GoogleTokenRefreshResponse;
+    try {
+      refreshed = await refreshGoogleAccessToken({ refreshToken: params.refreshToken });
+    } catch (error) {
+      if (error instanceof AppError && error.code === "GOOGLE_RECONNECT_REQUIRED") {
+        await deleteMyGoogleCalendarConnection(params.supabase, params.userId);
+      }
+      throw error;
+    }
     currentAccessToken = refreshed.access_token;
     currentExpiresAt =
       typeof refreshed.expires_in === "number"
