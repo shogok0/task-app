@@ -31,6 +31,7 @@ export type GoogleCalendarSyncResult = {
 
 const GOOGLE_CALENDAR_BASE = "https://www.googleapis.com/calendar/v3";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+let cachedGoogleClientId: string | null = null;
 
 function withTimeoutMs(ms: number): AbortSignal {
   return AbortSignal.timeout(ms);
@@ -43,8 +44,38 @@ function isExpired(expiresAt: string | null): boolean {
   return t <= Date.now() + 60_000;
 }
 
-function requireOAuthClientCredentials(): { clientId: string; clientSecret: string } {
-  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
+async function resolveGoogleClientIdFromSupabase(): Promise<string | null> {
+  if (cachedGoogleClientId) return cachedGoogleClientId;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return null;
+
+  const probeUrl =
+    `${supabaseUrl.replace(/\/+$/, "")}/auth/v1/authorize` +
+    "?provider=google&redirect_to=https%3A%2F%2Fexample.com%2Fauth%2Fcallback";
+
+  try {
+    await fetch(probeUrl, {
+      method: "GET",
+      redirect: "manual",
+      signal: withTimeoutMs(10_000),
+    }).then((res) => {
+      const location = res.headers.get("location") ?? "";
+      const match = location.match(/[?&]client_id=([^&]+)/);
+      if (!match?.[1]) return;
+      cachedGoogleClientId = decodeURIComponent(match[1]);
+    });
+  } catch {
+    return null;
+  }
+  return cachedGoogleClientId;
+}
+
+async function requireOAuthClientCredentials(): Promise<{
+  clientId: string;
+  clientSecret: string;
+}> {
+  const envClientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID;
+  const clientId = envClientId || (await resolveGoogleClientIdFromSupabase()) || "";
   const clientSecret =
     process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
@@ -60,7 +91,7 @@ function requireOAuthClientCredentials(): { clientId: string; clientSecret: stri
 async function refreshGoogleAccessToken(params: {
   refreshToken: string;
 }): Promise<GoogleTokenRefreshResponse> {
-  const { clientId, clientSecret } = requireOAuthClientCredentials();
+  const { clientId, clientSecret } = await requireOAuthClientCredentials();
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
@@ -319,4 +350,3 @@ export async function syncGoogleCalendarForUser(params: {
   await touchMyGoogleCalendarLastSyncedAt(params.supabase, params.userId);
   return data;
 }
-

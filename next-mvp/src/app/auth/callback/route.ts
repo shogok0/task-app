@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sanitizeNextPath } from "@/lib/google-calendar/sync-utils";
-import { upsertMyGoogleCalendarConnection } from "@/lib/db/repositories/google-calendar";
+import {
+  getMyGoogleCalendarSecretConnection,
+  upsertMyGoogleCalendarConnection,
+} from "@/lib/db/repositories/google-calendar";
 import { syncGoogleCalendarForUser } from "@/lib/google-calendar/sync-service";
 
 export async function GET(request: NextRequest) {
@@ -34,10 +37,14 @@ export async function GET(request: NextRequest) {
 
     if (userId && providerToken) {
       try {
+        const currentConnection = await getMyGoogleCalendarSecretConnection(
+          supabase,
+          userId,
+        );
         await upsertMyGoogleCalendarConnection(supabase, userId, {
           googleEmail: session?.user?.email ?? null,
           accessToken: providerToken,
-          refreshToken: providerRefreshToken,
+          refreshToken: providerRefreshToken ?? currentConnection?.refreshToken ?? null,
           scope: null,
           tokenType: null,
           expiresAt,
